@@ -44,8 +44,9 @@ htmlcov/
 # Internal docs (not for public release)
 DESIGN.md
 
-# High-res source logo (PWA icons are kept)
+# High-res source logos (generated PWA icons are kept)
 app/static/icons/zngai.png
+app/static/icons/terminchen.png
 
 # Serena / AI tooling
 .serena/
