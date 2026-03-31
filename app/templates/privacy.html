@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ app_name }} — Privacy Policy{% endblock %}
+
+{% block content %}
+<div class="card legal-page" style="max-width: 700px; margin: 2rem auto;">
+    <h1>Privacy Policy</h1>
+
+    {% if legal_name %}
+    <h3>Data controller</h3>
+    <p>
+        {{ legal_name }}{% if legal_email %}<br>
+        Email: <a href="mailto:{{ legal_email }}">{{ legal_email }}</a>{% endif %}
+    </p>
+    {% endif %}
+
+    <h3>What data we collect</h3>
+    <p>{{ app_name }} is designed to work without user accounts. We collect only the minimum data necessary to provide the service:</p>
+    <ul>
+        <li><strong>Calendar data</strong> — calendar names, descriptions, event details, member names, and RSVP responses that you create.</li>
+        <li><strong>Email address</strong> (optional) — only if you choose to provide one when creating a calendar, for link recovery purposes.</li>
+        <li><strong>Session cookies</strong> — essential cookies to maintain your admin/manager session. These are not used for tracking.</li>
+        <li><strong>Server logs</strong> — standard web server logs (IP address, browser type, pages visited) for security and debugging. These are automatically deleted after 30 days.</li>
+    </ul>
+
+    <h3>How we use your data</h3>
+    <ul>
+        <li>Calendar data is stored to provide the shared calendar service.</li>
+        <li>Email addresses are stored solely to send you calendar access links and for link recovery. We never send marketing emails.</li>
+        <li>Session cookies are used only to authenticate admin/manager access. They expire after the configured session lifetime.</li>
+    </ul>
+
+    <h3>Data sharing</h3>
+    <p>
+        We do not sell, trade, or share your personal data with third parties.
+        Calendar data shared via read-only links is accessible to anyone with the link — this is by design.
+    </p>
+
+    <h3>External services</h3>
+    <ul>
+        <li><strong>Google Fonts</strong> — we load the Inter font from Google Fonts. Google may log your IP address according to their <a href="https://policies.google.com/privacy" rel="noopener">privacy policy</a>.</li>
+        <li><strong>Open-Meteo</strong> — if weather display is enabled, we fetch forecasts from Open-Meteo using coordinates you configure. No personal data is sent.</li>
+    </ul>
+
+    <h3>Cookies</h3>
+    <p>
+        We use only <strong>essential session cookies</strong> required for the application to function
+        (admin/manager authentication). We do not use analytics cookies, advertising cookies, or any
+        third-party tracking.
+    </p>
+
+    <h3>Your rights (GDPR)</h3>
+    <p>Under the General Data Protection Regulation, you have the right to:</p>
+    <ul>
+        <li><strong>Access</strong> — request a copy of any personal data we hold about you.</li>
+        <li><strong>Rectification</strong> — ask us to correct inaccurate data.</li>
+        <li><strong>Erasure</strong> — ask us to delete your data (you can also delete your calendar via the admin dashboard).</li>
+        <li><strong>Data portability</strong> — export your calendar via the iCal feed.</li>
+    </ul>
+    {% if legal_email %}
+    <p>To exercise any of these rights, contact us at <a href="mailto:{{ legal_email }}">{{ legal_email }}</a>.</p>
+    {% endif %}
+
+    <h3>Data storage & security</h3>
+    <p>
+        Your data is stored on servers located in the European Union. Access to calendars is
+        protected by unique, randomly generated tokens. We use HTTPS encryption for all connections.
+    </p>
+
+    <h3>Changes to this policy</h3>
+    <p>
+        We may update this privacy policy from time to time. Changes will be reflected on this page.
+    </p>
+
+    <p style="margin-top: 1.5rem;">
+        <a href="{{ url_for('main.index') }}" class="text-muted">← Back to home</a>
+    </p>
+</div>
+{% endblock %}

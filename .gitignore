@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Environment
+.env
+.github/agents/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker data
+data/
+
+# Uploads (persisted via volume, not in git)
+app/uploads/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Flask instance folder
+instance/
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Internal docs (not for public release)
+DESIGN.md
+
+# High-res source logo (PWA icons are kept)
+app/static/icons/zngai.png
+
+# Serena / AI tooling
+.serena/
+.claude/
+
+# Uploads (persisted via volume at runtime)
+uploads/
+
+# SQLite (local dev fallback)
+*.sqlite
+*.sqlite3
+*.db
+
+# Logs and certs (safety net)
+*.log
+*.pem
+*.key
+*.crt

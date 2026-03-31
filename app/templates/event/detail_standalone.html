@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% from 'components/_rsvp_widget.html' import rsvp_widget %}
+
+{% block title %}{{ event.title }} — {{ calendar.name }}{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+{% block og_title %}{{ event.title }}{% endblock %}
+{% block og_description %}{{ event.start_time | localdate(calendar.timezone, calendar.date_format) }} — {{ event.description or calendar.name }}{% endblock %}
+
+{% block content %}
+<div class="event-detail standalone">
+    <p class="event-calendar-name">
+        <a href="{{ url_for('main.calendar_view', share_token=calendar.share_token) }}">📅 {{ calendar.name }}</a>
+    </p>
+
+    <div class="event-detail-header">
+        <h1>{{ event.title }}</h1>
+        <div class="event-meta">
+            <p class="event-datetime">
+                📅 {{ event.start_time | localdate(calendar.timezone, calendar.date_format) }}
+                {% if not event.all_day %}
+                    · {{ event.start_time | localtime_short(calendar.timezone, calendar.time_format) }}
+                    {% if event.end_time %} – {{ event.end_time | localtime_short(calendar.timezone, calendar.time_format) }}{% endif %}
+                {% else %}
+                    · All day
+                {% endif %}
+            </p>
+
+            {% if event.location %}
+            <p class="event-location">
+                📍 {% if event.location_url %}<a href="{{ event.location_url }}" target="_blank" rel="noopener">{{ event.location }}</a>{% else %}{{ event.location }}{% endif %}
+            </p>
+            {% endif %}
+
+            {% if event.whatsapp_url %}
+            <p class="event-whatsapp">
+                💬 <a href="{{ event.whatsapp_url }}" target="_blank" rel="noopener">WhatsApp Group</a>
+            </p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if event.description %}
+    <div class="event-description card">
+        <p>{{ event.description }}</p>
+    </div>
+    {% endif %}
+
+    {# RSVP section — uses calendar share token for API calls #}
+    <div class="card">
+        <h2>RSVP</h2>
+        {{ rsvp_widget(calendar, event, members, rsvp_data) }}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/rsvp.js') }}"></script>
+{% endblock %}

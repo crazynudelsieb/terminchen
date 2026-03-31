@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ app_name }} — Recover your calendars{% endblock %}
+
+{% block content %}
+<div class="card card-form" style="max-width: 480px; margin: 2rem auto;">
+    <h2>Recover Calendar Links</h2>
+    <p class="text-secondary" style="margin-bottom: 1.25rem;">
+        Enter the email address you used when creating your calendars.
+        We'll send all your admin links to that address.
+    </p>
+
+    <form method="POST" action="{{ url_for('main.recover') }}">
+        {{ form.hidden_tag() }}
+
+        <div class="form-group">
+            {{ form.email.label(class="form-label") }}
+            {{ form.email(class="form-input", placeholder="you@example.com", autofocus=True, type="email") }}
+            {% for error in form.email.errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">Send Recovery Email</button>
+    </form>
+
+    <p style="text-align: center; margin-top: 1.25rem;">
+        <a href="{{ url_for('main.index') }}" class="text-muted">← Back to home</a>
+    </p>
+</div>
+{% endblock %}

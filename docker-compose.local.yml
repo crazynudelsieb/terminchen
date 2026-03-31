@@ -1,0 +1,31 @@
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    env_file: .env
+    environment:
+      - FLASK_ENV=development
+      - LOG_LEVEL=DEBUG
+    volumes:
+      - .:/app
+      - ./data/uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:17-alpine
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-terminchen}
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-terminchen}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s

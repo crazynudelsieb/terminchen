@@ -1,0 +1,74 @@
+{# RSVP widget — member picker + status buttons + grouped member list #}
+{% from 'components/_member_avatar.html' import avatar %}
+
+{% macro rsvp_widget(calendar, event, members, rsvp_data, selected_member_id=None, my_rsvp=None) %}
+<div class="rsvp-widget" data-event-id="{{ event.id }}" data-share-token="{{ calendar.share_token }}">
+
+    {# Member selector #}
+    <div class="rsvp-picker">
+        <label for="rsvp-member-select">Who are you?</label>
+        <select id="rsvp-member-select" class="form-select">
+            <option value="">-- Select your name --</option>
+            {% for member in members %}
+                <option value="{{ member.id }}" {% if selected_member_id and selected_member_id == member.id|string %}selected{% endif %}>
+                    {{ member.name }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    {# RSVP buttons #}
+    <div class="rsvp-buttons" id="rsvp-buttons">
+        <button type="button" class="btn btn-rsvp btn-rsvp-in {% if my_rsvp == 'in' %}active{% endif %}" data-status="in">✓ In</button>
+        <button type="button" class="btn btn-rsvp btn-rsvp-maybe {% if my_rsvp == 'maybe' %}active{% endif %}" data-status="maybe">? Maybe</button>
+        <button type="button" class="btn btn-rsvp btn-rsvp-out {% if my_rsvp == 'out' %}active{% endif %}" data-status="out">✗ Out</button>
+    </div>
+
+    {# RSVP lists #}
+    <div class="rsvp-lists" id="rsvp-lists">
+        {% if rsvp_data['in'] %}
+        <div class="rsvp-group rsvp-group-in">
+            <h4>Attending ({{ rsvp_data['in']|length }})</h4>
+            <ul>
+                {% for member in rsvp_data['in'] %}
+                <li>{{ avatar(member, 'sm') }} {{ member.name }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if rsvp_data['maybe'] %}
+        <div class="rsvp-group rsvp-group-maybe">
+            <h4>Maybe ({{ rsvp_data['maybe']|length }})</h4>
+            <ul>
+                {% for member in rsvp_data['maybe'] %}
+                <li>{{ avatar(member, 'sm') }} {{ member.name }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if rsvp_data['out'] %}
+        <div class="rsvp-group rsvp-group-out">
+            <h4>Not attending ({{ rsvp_data['out']|length }})</h4>
+            <ul>
+                {% for member in rsvp_data['out'] %}
+                <li>{{ avatar(member, 'sm') }} {{ member.name }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if rsvp_data['no_response'] %}
+        <div class="rsvp-group rsvp-group-none">
+            <h4>No response ({{ rsvp_data['no_response']|length }})</h4>
+            <ul>
+                {% for member in rsvp_data['no_response'] %}
+                <li>{{ avatar(member, 'sm') }} {{ member.name }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}

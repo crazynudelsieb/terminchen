@@ -1,0 +1,28 @@
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    env_file: .env
+    volumes:
+      - ./data/uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    user: "${DOCKER_USER:-1000}:${DOCKER_GROUP:-1000}"
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-terminchen}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+      POSTGRES_DB: ${POSTGRES_DB:-terminchen}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-terminchen}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped

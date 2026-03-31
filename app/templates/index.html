@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ app_name }} — Free Shared Calendar for Groups{% endblock %}
+{% block meta_description %}Create a shared calendar in seconds. No sign-up needed. Coordinate events with friends, clubs, and teams. Free, private, and simple.{% endblock %}
+{% block og_title %}{{ app_name }} — Free Shared Calendar{% endblock %}
+{% block og_description %}Create a shared calendar in seconds. No sign-up, no accounts. Just share a link.{% endblock %}
+{% block twitter_title %}{{ app_name }} — Free Shared Calendar{% endblock %}
+{% block twitter_description %}Create a shared calendar in seconds. No sign-up, no accounts. Just share a link.{% endblock %}
+{% block canonical %}{{ seo_base_url }}/{% endblock %}
+
+{% block head_extra %}
+{# JSON-LD structured data for search engines #}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "{{ app_name }}",
+  "url": "{{ seo_base_url }}/",
+  "description": "{{ app_tagline }}",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Any",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "featureList": [
+    "Shared calendars",
+    "No account needed",
+    "RSVP tracking",
+    "iCal feed export",
+    "Embeddable widget",
+    "Mobile friendly"
+  ]
+}
+</script>
+{% endblock %}
+
+{% block header_nav %}
+<a href="#create-form-card" class="btn btn-sm btn-primary header-create-btn" id="header-new-cal-btn" style="display:none;" onclick="document.getElementById('create-form-card').style.display='block';document.getElementById('recent-calendars').style.display='none';this.style.display='none';document.querySelector('#create-form-card input[name=name]').focus();return false;">+ New Calendar</a>
+{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <h1>{{ app_name }}</h1>
+    <p class="hero-desc">{{ app_tagline }}</p>
+</div>
+
+{# Hide the create form instantly (before paint) if there is history in localStorage #}
+<script>
+(function(){try{var h=JSON.parse(localStorage.getItem('terminchen_history')||'[]');if(h.length){var s=document.createElement('style');s.textContent='#create-form-card{display:none}';document.head.appendChild(s);}}catch(e){}})();
+</script>
+
+{# Recent calendars — populated from localStorage, validated against server #}
+<div id="recent-calendars" class="card" style="display:none;">
+    <h3>Recent Calendars</h3>
+    <div id="recent-list"></div>
+</div>
+
+<div id="create-form-card" class="card card-form">
+    <h2>Create a New Calendar</h2>
+    <form method="POST" action="{{ url_for('main.create_calendar') }}">
+        {{ form.hidden_tag() }}
+
+        <div class="form-group">
+            {{ form.name.label(class="form-label") }}
+            {{ form.name(class="form-input", placeholder="e.g. Weekend Warriors", autofocus=True) }}
+            {% for error in form.name.errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div class="form-group">
+            {{ form.description.label(class="form-label") }}
+            {{ form.description(class="form-input form-textarea", placeholder="Optional description for your calendar", rows=3) }}
+        </div>
+
+        <div class="form-group">
+            {{ form.timezone.label(class="form-label") }}
+            {{ form.timezone(class="form-select") }}
+            {% for error in form.timezone.errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div class="form-group">
+            {{ form.owner_email.label(class="form-label") }}
+            {{ form.owner_email(class="form-input", placeholder="you@example.com", type="email") }}
+            <p class="form-hint">Optional — we'll email you the calendar links so you never lose them.</p>
+            {% for error in form.owner_email.errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">Create Calendar</button>
+    </form>
+    <p style="text-align: center; margin-top: 1rem;">
+        <a href="{{ url_for('main.recover') }}" class="text-muted">Lost your calendar links? Recover them</a>
+    </p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-detect timezone and pre-select in dropdown
+document.addEventListener('DOMContentLoaded', function() {
+    var sel = document.querySelector('select[name="timezone"]');
+    if (!sel) return;
+
+    // If dropdown is empty (server had no tzdata), populate from browser
+    if (sel.options.length <= 1) {
+        try {
+            var tzList = Intl.supportedValuesOf('timeZone');
+            tzList.forEach(function(tz) {
+                var opt = document.createElement('option');
+                opt.value = tz;
+                opt.textContent = tz.replace(/_/g, ' ');
+                sel.appendChild(opt);
+            });
+        } catch(e) {}
+    }
+
+    // Only auto-select if still on the placeholder
+    if (sel.selectedIndex > 0) return;
+    try {
+        var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (!tz) return;
+        for (var i = 0; i < sel.options.length; i++) {
+            if (sel.options[i].value === tz) {
+                sel.selectedIndex = i;
+                return;
+            }
+        }
+        // Fallback: case-insensitive match
+        var tzLower = tz.toLowerCase();
+        for (var j = 0; j < sel.options.length; j++) {
+            if (sel.options[j].value.toLowerCase() === tzLower) {
+                sel.selectedIndex = j;
+                return;
+            }
+        }
+    } catch(e) {}
+});
+
+(function() {
+    var KEY = 'terminchen_history';
+    var wrap = document.getElementById('recent-calendars');
+    var list = document.getElementById('recent-list');
+    var formCard = document.getElementById('create-form-card');
+    var headerBtn = document.getElementById('header-new-cal-btn');
+    if (!wrap || !list) return;
+
+    var history;
+    try { history = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e) { return; }
+    if (!history.length) return;
+
+    function renderList(items) {
+        items.forEach(function(h) {
+            var a = document.createElement('a');
+            // Always link to the calendar view
+            a.href = '/cal/' + h.token;
+            a.className = 'recent-cal-item';
+            var dot = '<span class="event-dot" style="background-color:' + (h.color || '#16a34a') + ';"></span>';
+            var span = document.createElement('span');
+            span.className = 'recent-cal-name';
+            span.textContent = h.name;
+            a.innerHTML = dot;
+            a.appendChild(span);
+            // Show admin badge if admin access is confirmed
+            if (h.admin_valid && h.admin_token) {
+                var badge = document.createElement('span');
+                badge.className = 'recent-cal-badge badge-admin';
+                badge.textContent = 'Admin';
+                a.appendChild(badge);
+            }
+            list.appendChild(a);
+        });
+        wrap.style.display = '';
+        // Hide the create form when recent calendars are shown
+        // (user can use the header "New Calendar" button instead)
+        if (formCard) formCard.style.display = 'none';
+        if (headerBtn) headerBtn.style.display = '';
+    }
+
+    // Validate against server: remove deleted calendars, verify admin tokens
+    var tokens = history.map(function(h) { return h.token; });
+    var adminTokens = {};
+    history.forEach(function(h) {
+        if (h.admin_token) adminTokens[h.token] = h.admin_token;
+    });
+    window.apiFetch('/api/calendars/validate', {
+        method: 'POST',
+        body: JSON.stringify({tokens: tokens, admin_tokens: adminTokens})
+    }).then(function(r) { return r.json(); })
+    .then(function(valid) {
+        var updated = [];
+        history.forEach(function(h) {
+            if (valid[h.token]) {
+                h.name = valid[h.token].name;
+                h.color = valid[h.token].color;
+                // Mark admin access as server-validated
+                h.admin_valid = !!valid[h.token].admin_valid;
+                if (!h.admin_valid) delete h.admin_token;
+                updated.push(h);
+            }
+        });
+        localStorage.setItem(KEY, JSON.stringify(updated));
+        if (!updated.length) return;
+        renderList(updated);
+    }).catch(function() {
+        // Offline fallback: show cached names without validation
+        renderList(history);
+    });
+})();
+</script>
+{% endblock %}

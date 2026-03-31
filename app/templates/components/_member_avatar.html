@@ -1,0 +1,8 @@
+{# Member avatar — shows uploaded icon, DiceBear random avatar, or colored initials #}
+{% macro avatar(member, size='md') %}
+<span class="avatar avatar-{{ size }}" style="--avatar-color: {{ member.color }};" title="{{ member.name }}">
+    <img src="{{ member.avatar_url }}" alt="{{ member.name }}" loading="lazy"
+         onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+    <span class="avatar-initials" style="display:none;">{{ member.initials }}</span>
+</span>
+{% endmacro %}

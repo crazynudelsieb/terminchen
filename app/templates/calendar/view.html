@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% from 'components/_calendar_agenda.html' import agenda_view %}
+{% from 'components/_calendar_month.html' import month_view %}
+{% from 'components/_calendar_week.html' import week_view %}
+
+{% block title %}{{ calendar.name }} — {{ app_name }}{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+{% block og_title %}{{ calendar.name }}{% endblock %}
+{% block og_description %}{{ calendar.description or app_tagline }}{% endblock %}
+
+{% block header_nav %}
+<nav class="cal-nav">
+    <span class="cal-name">{{ calendar.name }}</span>
+    <div class="view-switcher">
+        <a href="{{ url_for('main.calendar_month', share_token=calendar.share_token) }}"
+           class="btn btn-sm {% if view == 'month' %}active{% endif %}">Month</a>
+        <a href="{{ url_for('main.calendar_week', share_token=calendar.share_token) }}"
+           class="btn btn-sm {% if view == 'week' %}active{% endif %}">Week</a>
+        <a href="{{ url_for('main.calendar_agenda', share_token=calendar.share_token) }}"
+           class="btn btn-sm {% if view == 'agenda' %}active{% endif %}">Agenda</a>
+        {% set admin_tok = session.get('admin_token_' + calendar.share_token) %}
+        {% if admin_tok %}
+        <a href="{{ url_for('main.admin_dashboard', share_token=calendar.share_token, admin_token=admin_tok, dashboard=1) }}"
+           class="btn btn-sm btn-admin">Admin</a>
+        {% endif %}
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="calendar-container" {% if create_event_url %}data-create-url="{{ create_event_url }}"{% endif %}>
+    {% if view == 'month' %}
+        {{ month_view(events, calendar, year, month, month_name, days_in_month,
+                       first_weekday, events_by_date, prev_year, prev_month,
+                       next_year, next_month, today_str,
+                       birthdays_by_date=birthdays_by_date|default({}),
+                       holidays_by_date=holidays_by_date|default({}),
+                       weather_by_date=weather_by_date|default({})) }}
+    {% elif view == 'week' %}
+        {{ week_view(events, calendar, week_dates, events_by_date,
+                      prev_week, next_week, today_str, members=members,
+                      birthdays_by_date=birthdays_by_date|default({}),
+                      holidays_by_date=holidays_by_date|default({}),
+                      weather_by_date=weather_by_date|default({})) }}
+    {% else %}
+        {{ agenda_view(events, calendar, members=members,
+                        upcoming_birthdays=upcoming_birthdays|default([]),
+                        upcoming_holidays=upcoming_holidays|default([]),
+                        upcoming_weather=upcoming_weather|default([]),
+                        weather_by_date=weather_by_date|default({}),
+                        create_event_url=create_event_url) }}
+    {% endif %}
+</div>
+
+{# Timezone indicator #}
+<p class="tz-indicator">Times shown in {{ calendar.timezone }}</p>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/rsvp.js') }}"></script>
+<script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
+<script>
+// Track this calendar visit in localStorage for the front-page history
+(function() {
+    var KEY = 'terminchen_history';
+    var token = '{{ calendar.share_token }}';
+    var name = {{ calendar.name | tojson }};
+    var adminToken = '{{ session.get("admin_token_" + calendar.share_token, "") }}';
+    try {
+        var history = JSON.parse(localStorage.getItem(KEY) || '[]');
+        // Preserve existing admin_token if we don't have one now
+        var existing = history.find(function(h) { return h.token === token; });
+        if (!adminToken && existing && existing.admin_token) {
+            adminToken = existing.admin_token;
+        }
+        // Remove existing entry for this token
+        history = history.filter(function(h) { return h.token !== token; });
+        // Add to front
+        var entry = {token: token, name: name, ts: Date.now()};
+        if (adminToken) entry.admin_token = adminToken;
+        history.unshift(entry);
+        // Keep last 10
+        if (history.length > 10) history = history.slice(0, 10);
+        localStorage.setItem(KEY, JSON.stringify(history));
+    } catch(e) {}
+})();
+</script>
+{% endblock %}

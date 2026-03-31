@@ -1,0 +1,313 @@
+{% extends 'base.html' %}
+{% from 'components/_share_links.html' import share_links %}
+{% from 'components/_event_card.html' import event_card %}
+{% from 'components/_member_avatar.html' import avatar %}
+
+{% block title %}Admin — {{ calendar.name }}{% endblock %}
+
+{% block header_nav %}
+<nav class="cal-nav">
+    <span class="cal-name">{{ calendar.name }}</span>
+    <div class="admin-nav">
+        <a href="{{ url_for('main.calendar_view', share_token=calendar.share_token) }}" class="btn btn-sm">View Calendar</a>
+        <a href="#settings" class="btn btn-sm" onclick="var b=document.getElementById('settings-body');if(b&amp;&amp;b.style.display==='none'){b.style.display='';var i=document.querySelector('#settings .collapse-indicator');if(i)i.textContent='▾';}">Admin</a>
+        <a href="{{ url_for('main.members_list', share_token=calendar.share_token, admin_token=calendar.admin_token) }}" class="btn btn-sm">Members</a>
+        <a href="{{ url_for('main.tags_list', share_token=calendar.share_token, admin_token=calendar.admin_token) }}" class="btn btn-sm">Tags</a>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="admin-dashboard">
+    <h1>Dashboard</h1>
+
+    {# Share links #}
+    <div class="card">
+        {{ share_links(calendar, show_admin=True) }}
+    </div>
+
+    {# Quick actions #}
+    <div class="card">
+        <h2>Events</h2>
+        <a href="{{ url_for('main.create_event', share_token=calendar.share_token, admin_token=calendar.admin_token) }}" class="btn btn-primary">+ New Event</a>
+
+        <div class="event-list">
+            {% if events %}
+                {% for event in events %}
+                <div class="admin-event-row">
+                    {{ event_card(event, calendar, show_rsvp=True) }}
+                    <div class="admin-event-actions">
+                        <a href="{{ url_for('main.edit_event', share_token=calendar.share_token, admin_token=calendar.admin_token, event_id=event.id) }}"
+                           class="btn btn-sm btn-secondary">Edit</a>
+                        <form method="POST" action="{{ url_for('main.bulk_rsvp', share_token=calendar.share_token, admin_token=calendar.admin_token, event_id=event.id) }}"
+                              style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="status" value="in">
+                            <button type="submit" class="btn btn-sm btn-secondary" title="Set all members to In">Everyone In</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('main.duplicate_event_admin', share_token=calendar.share_token, admin_token=calendar.admin_token, event_id=event.id) }}"
+                              style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-secondary" title="Duplicate">Copy</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('main.delete_event', share_token=calendar.share_token, admin_token=calendar.admin_token, event_id=event.id) }}"
+                              style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-danger btn-confirm-delete"
+                                    data-confirm="Delete &laquo;{{ event.title }}&raquo;? This cannot be undone.">Delete</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <p style="font-size: 2rem; margin-bottom: 0.5rem;">📅</p>
+                    <p>No upcoming events yet.</p>
+                    <a href="{{ url_for('main.create_event', share_token=calendar.share_token, admin_token=calendar.admin_token) }}" class="btn btn-primary" style="margin-top: 0.75rem;">+ Create your first event</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# Members overview #}
+    <div class="card">
+        <h2>Members ({{ members|length }})</h2>
+        <div class="member-list-compact">
+            {% for member in members %}
+                <span class="member-chip {% if not member.is_active %}member-inactive{% endif %}">
+                    {{ avatar(member, 'sm') }} {{ member.name }}
+                </span>
+            {% endfor %}
+        </div>
+        <a href="{{ url_for('main.members_list', share_token=calendar.share_token, admin_token=calendar.admin_token) }}" class="btn btn-sm btn-secondary" style="margin-top: 0.5rem;">Manage Members</a>
+    </div>
+
+    {# Calendar Settings (collapsible) #}
+    <div class="card" id="settings">
+        <h2 class="collapsible-header" data-toggle="settings-body" style="cursor:pointer;">
+            ⚙️ Settings <span class="collapse-indicator">▾</span>
+        </h2>
+        <div id="settings-body" class="collapsible-body">
+            <form method="POST" action="{{ url_for('main.admin_dashboard', share_token=calendar.share_token, admin_token=calendar.admin_token) }}">
+                {{ form.hidden_tag() }}
+
+                <div class="form-group">
+                    {{ form.name.label(class="form-label") }}
+                    {{ form.name(class="form-input") }}
+                    {% for error in form.name.errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+                </div>
+
+                <div class="form-group">
+                    {{ form.description.label(class="form-label") }}
+                    {{ form.description(class="form-input form-textarea", rows=3) }}
+                </div>
+
+                <div class="form-group">
+                    {{ form.timezone.label(class="form-label") }}
+                    {{ form.timezone(class="form-select") }}
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group form-group-half">
+                        {{ form.default_view.label(class="form-label") }}
+                        {{ form.default_view(class="form-select") }}
+                    </div>
+                    <div class="form-group form-group-half">
+                        {{ form.week_start.label(class="form-label") }}
+                        {{ form.week_start(class="form-select") }}
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group form-group-half">
+                        {{ form.time_format.label(class="form-label") }}
+                        {{ form.time_format(class="form-select") }}
+                    </div>
+                    <div class="form-group form-group-half">
+                        {{ form.date_format.label(class="form-label") }}
+                        {{ form.date_format(class="form-select") }}
+                    </div>
+                </div>
+
+                <div class="form-group form-group-inline">
+                    {{ form.embed_allowed(class="form-checkbox") }}
+                    {{ form.embed_allowed.label(class="form-label-inline") }}
+                </div>
+
+                <div class="form-group form-group-inline">
+                    {{ form.show_birthdays(class="form-checkbox") }}
+                    {{ form.show_birthdays.label(class="form-label-inline") }}
+                </div>
+
+                <div class="form-group form-group-inline">
+                    {{ form.show_holidays(class="form-checkbox") }}
+                    {{ form.show_holidays.label(class="form-label-inline") }}
+                </div>
+
+                <div class="form-group">
+                    {{ form.holiday_country.label(class="form-label") }}
+                    {{ form.holiday_country(class="form-select") }}
+                    <p class="form-hint">Leave on "Auto-detect" to infer the country from the calendar timezone.</p>
+                </div>
+
+                <div class="form-group form-group-inline">
+                    {{ form.show_weather(class="form-checkbox") }}
+                    {{ form.show_weather.label(class="form-label-inline") }}
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group form-group-half">
+                        {{ form.weather_lat.label(class="form-label") }}
+                        {{ form.weather_lat(class="form-input", placeholder="e.g. 52.52") }}
+                    </div>
+                    <div class="form-group form-group-half">
+                        {{ form.weather_lon.label(class="form-label") }}
+                        {{ form.weather_lon(class="form-input", placeholder="e.g. 13.41") }}
+                    </div>
+                </div>
+                <p class="form-hint">Leave empty to auto-detect from timezone. Set both for a specific location.</p>
+
+                <hr>
+
+                <div class="form-group">
+                    {{ form.admin_password.label(class="form-label") }}
+                    {{ form.admin_password(class="form-input", placeholder="Leave empty to keep current / no password") }}
+                    <p class="form-hint">
+                        {% if calendar.admin_password_hash %}
+                            🔒 Password is currently set. Enter a new one to change it, or leave empty to keep.
+                        {% else %}
+                            No password set. Add one to protect admin access.
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Save Settings</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# Audit log #}
+    {% if audit_logs %}
+    <div class="card">
+        <h2>Recent Activity</h2>
+        <ul class="audit-log-list">
+            {% for log in audit_logs %}
+            <li class="audit-log-entry">
+                <span class="audit-action">{{ log.action }}</span>
+                {% if log.detail %}<span class="audit-detail">{{ log.detail }}</span>{% endif %}
+                <span class="audit-time text-muted">{{ log.created_at | localtime(calendar.timezone, calendar.time_format, calendar.date_format) }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {# Danger zone #}
+    <div class="card card-danger">
+        <h3 style="color:#dc2626;margin-top:0;">⚠️ Danger Zone</h3>
+
+        {# Regenerate tokens #}
+        <div style="margin-bottom:1rem;">
+            <p style="color:#94a3b8;font-size:0.9rem;">
+                Regenerate <strong>all</strong> access tokens (share, manager, admin).
+                All existing links will stop working immediately.
+                {% if calendar.owner_email %}
+                New links will be emailed to <strong>{{ calendar.owner_email }}</strong>.
+                {% else %}
+                <strong>No email on file</strong> — you must bookmark the new admin link after regeneration!
+                {% endif %}
+            </p>
+            <form method="POST"
+                  action="{{ url_for('main.regenerate_tokens', share_token=calendar.share_token, admin_token=calendar.admin_token) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger btn-confirm-delete"
+                        data-confirm="Regenerate ALL tokens? Every existing share / manager / admin link will become invalid immediately. This cannot be undone.">
+                    🔄 Regenerate All Tokens
+                </button>
+            </form>
+        </div>
+
+        <hr style="border-color:#334155;margin:1rem 0;">
+
+        {# Delete calendar #}
+        <div>
+            <p style="color:#94a3b8;font-size:0.9rem;">
+                Permanently delete <strong>{{ calendar.name }}</strong> and all its events, members, and data.
+            </p>
+            <form method="POST" action="{{ url_for('main.delete_calendar', share_token=calendar.share_token, admin_token=calendar.admin_token) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger btn-confirm-delete"
+                        data-confirm="Permanently delete &laquo;{{ calendar.name }}&raquo; and all its events? This cannot be undone.">🗑️ Delete Calendar</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/clipboard.js') }}"></script>
+<script>
+// Track admin visit in localStorage history
+(function() {
+    var KEY = 'terminchen_history';
+    var token = '{{ calendar.share_token }}';
+    var name = {{ calendar.name | tojson }};
+    var adminToken = '{{ calendar.admin_token }}';
+    try {
+        var history = JSON.parse(localStorage.getItem(KEY) || '[]');
+        history = history.filter(function(h) { return h.token !== token; });
+        history.unshift({token: token, name: name, admin_token: adminToken, ts: Date.now()});
+        if (history.length > 10) history = history.slice(0, 10);
+        localStorage.setItem(KEY, JSON.stringify(history));
+    } catch(e) {}
+})();
+
+// Collapsible settings section
+document.querySelectorAll('.collapsible-header').forEach(function(header) {
+    header.addEventListener('click', function() {
+        var targetId = this.getAttribute('data-toggle');
+        var body = document.getElementById(targetId);
+        var indicator = this.querySelector('.collapse-indicator');
+        if (body.style.display === 'none') {
+            body.style.display = '';
+            indicator.textContent = '▾';
+        } else {
+            body.style.display = 'none';
+            indicator.textContent = '▸';
+        }
+    });
+});
+
+// Auto-open settings section if URL has #settings or if there are form errors
+(function() {
+    var hasErrors = {{ 'true' if form.errors else 'false' }};
+    if (!window.location.hash && !hasErrors) {
+        var body = document.getElementById('settings-body');
+        if (body) body.style.display = 'none';
+        var indicator = document.querySelector('#settings .collapse-indicator');
+        if (indicator) indicator.textContent = '▸';
+    }
+    if (window.location.hash === '#settings') {
+        var el = document.getElementById('settings');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+})();
+
+// Populate timezone dropdown from browser if server list is empty
+document.addEventListener('DOMContentLoaded', function() {
+    var sel = document.querySelector('select[name="timezone"]');
+    if (!sel || sel.options.length > 1) return;
+    try {
+        var tzList = Intl.supportedValuesOf('timeZone');
+        tzList.forEach(function(tz) {
+            var opt = document.createElement('option');
+            opt.value = tz;
+            opt.textContent = tz.replace(/_/g, ' ');
+            sel.appendChild(opt);
+        });
+    } catch(e) {}
+});
+</script>
+{% endblock %}

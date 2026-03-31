@@ -1,0 +1,58 @@
+{# Agenda/list view component #}
+{% from 'components/_event_card.html' import event_card %}
+
+{% macro agenda_view(events, calendar, members=None, upcoming_birthdays=[], upcoming_holidays=[], upcoming_weather=[], weather_by_date={}, create_event_url=None) %}
+<div class="agenda-view">
+    {% if not events and not upcoming_birthdays and not upcoming_holidays and not upcoming_weather %}
+        <div class="empty-state">
+            <p style="font-size: 2rem; margin-bottom: 0.5rem;">📅</p>
+            <p>No upcoming events yet.</p>
+            {% if create_event_url is defined and create_event_url %}
+            <a href="{{ create_event_url }}" class="btn btn-primary" style="margin-top: 0.75rem;">+ Create your first event</a>
+            {% endif %}
+        </div>
+    {% else %}
+        {% set ns = namespace(current_date=None) %}
+        {% for event in events %}
+            {% set event_date = event.start_time | localdate(calendar.timezone, calendar.date_format) %}
+            {% if event_date != ns.current_date %}
+                {% set ns.current_date = event_date %}
+                {% set date_iso = event.start_time | localdate_iso(calendar.timezone) %}
+                {% set day_w = weather_by_date.get(date_iso) if weather_by_date else None %}
+                <div class="agenda-date-header">
+                    <h3>{{ event_date }}{% if day_w %} <span class="day-weather-info" title="{{ day_w.description }}: {{ day_w.temp_high|round|int }}° / {{ day_w.temp_low|round|int }}°">{{ day_w.icon }} {{ day_w.temp_high|round|int }}°/{{ day_w.temp_low|round|int }}°</span>{% endif %}</h3>
+                </div>
+            {% endif %}
+            {{ event_card(event, calendar, show_quick_rsvp=(members is not none), members=members) }}
+        {% endfor %}
+
+        {% if upcoming_holidays %}
+        <div class="agenda-date-header" style="margin-top: 1.5rem;">
+            <h3>🏛 Upcoming Holidays</h3>
+        </div>
+        {% for hol in upcoming_holidays %}
+        <div class="event-card holiday-card">
+            <div class="event-card-header">
+                <span class="event-time">{{ hol.date_str | formatdate(calendar.date_format) }}</span>
+                <h3 class="event-title holiday-title">🏛 {{ hol.name }}</h3>
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        {% if upcoming_birthdays %}
+        <div class="agenda-date-header" style="margin-top: 1.5rem;">
+            <h3>🎂 Upcoming Birthdays</h3>
+        </div>
+        {% for bday in upcoming_birthdays %}
+        <div class="event-card birthday-card" style="--event-color: {{ bday.member_color }};">
+            <div class="event-card-header">
+                <span class="event-time">{{ bday.date_str | formatdate(calendar.date_format) }}</span>
+                <h3 class="event-title birthday-title">🎂 {{ bday.member_name }}'s birthday</h3>
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+    {% endif %}
+</div>
+{% endmacro %}

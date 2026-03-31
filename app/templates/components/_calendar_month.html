@@ -1,0 +1,93 @@
+{# Month view component — CSS grid calendar #}
+{% macro month_view(events, calendar, year, month, month_name, days_in_month, first_weekday, events_by_date, prev_year, prev_month, next_year, next_month, today_str, birthdays_by_date={}, holidays_by_date={}, weather_by_date={}) %}
+<div class="month-view">
+    {# Month navigation header #}
+    <div class="month-nav">
+        <a href="{{ url_for('main.calendar_month', share_token=calendar.share_token, year=prev_year, month=prev_month) }}" class="btn btn-sm" aria-label="Previous month">‹</a>
+        <h2 class="month-title">{{ month_name }} {{ year }}</h2>
+        <a href="{{ url_for('main.calendar_month', share_token=calendar.share_token, year=next_year, month=next_month) }}" class="btn btn-sm" aria-label="Next month">›</a>
+        <a href="{{ url_for('main.calendar_month', share_token=calendar.share_token) }}" class="btn btn-sm btn-today" aria-label="Jump to today">Today</a>
+    </div>
+
+    {# Day name headers #}
+    <div class="month-day-names">
+        {% set day_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] %}
+        {% for day in day_names %}
+            <div class="month-day-name">{{ day }}</div>
+        {% endfor %}
+    </div>
+
+    {# Month grid #}
+    <div class="month-grid">
+        {# Empty cells before the first day #}
+        {% for _ in range(first_weekday) %}
+            <div class="month-cell month-cell-empty"></div>
+        {% endfor %}
+
+        {# Day cells #}
+        {% for day_num in range(1, days_in_month + 1) %}
+            {% set date_key = '%04d-%02d-%02d' | format(year, month, day_num) %}
+            {% set day_events = events_by_date.get(date_key, []) %}
+            {% set is_today = date_key == today_str %}
+            {% set day_weather = weather_by_date.get(date_key) %}
+            <div class="month-cell {% if is_today %}month-cell-today{% endif %} {% if day_events %}month-cell-has-events{% endif %}" data-date="{{ date_key }}">
+                <div class="month-cell-header">
+                    <span class="month-cell-date {% if is_today %}month-date-today{% endif %}">{{ day_num }}</span>
+                    {% if day_weather %}<span class="month-cell-weather" title="{{ day_weather.description }}: {{ day_weather.temp_high }}° / {{ day_weather.temp_low }}°">{{ day_weather.icon }} {{ day_weather.temp_high|round|int }}°</span>{% endif %}
+                </div>
+                {% if day_events %}
+                <div class="month-cell-events">
+                    {% for event in day_events[:3] %}
+                    <a href="{{ url_for('main.event_detail', share_token=calendar.share_token, event_id=event.id) }}"
+                       class="month-cell-event" title="{{ event.title }}">
+                        <span class="event-dot"></span>
+                        <span class="month-event-title">{{ event.title | truncate(18) }}</span>
+                    </a>
+                    {% endfor %}
+                    {% if day_events | length > 3 %}
+                    <span class="month-cell-more">+{{ day_events | length - 3 }} more</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+                {% set day_birthdays = birthdays_by_date.get(date_key, []) %}
+                {% if day_birthdays %}
+                <div class="month-cell-events">
+                    {% for bday in day_birthdays %}
+                    <span class="month-cell-event month-cell-birthday" title="{{ bday.member_name }}'s birthday">
+                        <span class="birthday-dot" style="background-color: {{ bday.member_color }};"></span>
+                        <span class="month-event-title">🎂 {{ bday.member_name | truncate(14) }}</span>
+                    </span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% set day_holidays = holidays_by_date.get(date_key, []) %}
+                {% if day_holidays %}
+                <div class="month-cell-events">
+                    {% for hol in day_holidays %}
+                    <span class="month-cell-event month-cell-holiday" title="{{ hol.name }}">
+                        <span class="month-event-title">🏛 {{ hol.name | truncate(16) }}</span>
+                    </span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+
+    {# Upcoming events below the grid #}
+    {% if events %}
+    <div class="month-upcoming">
+        <h3>Upcoming</h3>
+        {% for event in events[:5] %}
+        <div class="month-event-row">
+            <span class="event-dot"></span>
+            <span class="event-date-short">{{ event.start_time | localdate(calendar.timezone, calendar.date_format) }}</span>
+            <a href="{{ url_for('main.event_detail', share_token=calendar.share_token, event_id=event.id) }}" class="event-title-link">
+                {{ event.title }}
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endmacro %}

@@ -1,0 +1,67 @@
+{# Share links with copy-to-clipboard and per-link QR codes #}
+{% macro share_links(calendar, show_admin=False) %}
+<div class="share-links">
+    <h4>Share Links</h4>
+
+    {% set base_url = request.host_url.rstrip('/') %}
+    {% set qr_base = '/cal/' ~ calendar.share_token ~ '/qr.png' %}
+
+    <div class="share-link-row">
+        <label>Read-only link <span class="text-muted">(anyone can view &amp; RSVP)</span>:</label>
+        <div class="share-input-group">
+            <input type="text" readonly class="form-input"
+                   value="{{ base_url }}/cal/{{ calendar.share_token }}"
+                   id="share-link-readonly">
+            <button type="button" class="btn btn-sm btn-copy" data-copy-target="share-link-readonly" title="Copy">📋</button>
+            <button type="button" class="btn btn-sm btn-qr-toggle"
+                    data-qr-src="{{ qr_base }}?url={{ (base_url ~ '/cal/' ~ calendar.share_token) | urlencode }}"
+                    title="Show QR code">QR</button>
+        </div>
+        <div class="share-qr-inline" style="display:none;"></div>
+    </div>
+
+    <div class="share-link-row">
+        <label>iCal feed (Outlook/Google):</label>
+        <div class="share-input-group">
+            <input type="text" readonly class="form-input"
+                   value="{{ base_url }}/cal/{{ calendar.share_token }}/feed.ics"
+                   id="share-link-ical">
+            <button type="button" class="btn btn-sm btn-copy" data-copy-target="share-link-ical" title="Copy">📋</button>
+            <button type="button" class="btn btn-sm btn-qr-toggle"
+                    data-qr-src="{{ qr_base }}?url={{ (base_url ~ '/cal/' ~ calendar.share_token ~ '/feed.ics') | urlencode }}"
+                    title="Show QR code">QR</button>
+        </div>
+        <div class="share-qr-inline" style="display:none;"></div>
+    </div>
+
+    {% if show_admin %}
+    <div class="share-link-row">
+        <label>Manager link <span class="text-muted">(event management, no member/calendar changes)</span>:</label>
+        <div class="share-input-group">
+            <input type="text" readonly class="form-input"
+                   value="{{ base_url }}/cal/{{ calendar.share_token }}/manage/{{ calendar.manager_token }}"
+                   id="share-link-manager">
+            <button type="button" class="btn btn-sm btn-copy" data-copy-target="share-link-manager" title="Copy">📋</button>
+            <button type="button" class="btn btn-sm btn-qr-toggle"
+                    data-qr-src="{{ qr_base }}?url={{ (base_url ~ '/cal/' ~ calendar.share_token ~ '/manage/' ~ calendar.manager_token) | urlencode }}"
+                    title="Show QR code">QR</button>
+        </div>
+        <div class="share-qr-inline" style="display:none;"></div>
+    </div>
+
+    <div class="share-link-row">
+        <label>Admin link <span class="text-muted">(full access — keep this private!)</span>:</label>
+        <div class="share-input-group">
+            <input type="text" readonly class="form-input"
+                   value="{{ base_url }}/cal/{{ calendar.share_token }}/admin/{{ calendar.admin_token }}"
+                   id="share-link-admin">
+            <button type="button" class="btn btn-sm btn-copy" data-copy-target="share-link-admin" title="Copy">📋</button>
+            <button type="button" class="btn btn-sm btn-qr-toggle"
+                    data-qr-src="{{ qr_base }}?url={{ (base_url ~ '/cal/' ~ calendar.share_token ~ '/admin/' ~ calendar.admin_token) | urlencode }}"
+                    title="Show QR code">QR</button>
+        </div>
+        <div class="share-qr-inline" style="display:none;"></div>
+    </div>
+    {% endif %}
+</div>
+{% endmacro %}

@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block title %}Tags — {{ calendar.name }}{% endblock %}
+
+{% block header_nav %}
+<nav class="cal-nav">
+    <a href="{{ url_for('main.admin_dashboard', share_token=calendar.share_token, admin_token=calendar.admin_token) }}" class="btn btn-sm">← Dashboard</a>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="admin-tags">
+    <h1>Event Tags</h1>
+
+    {# Add tag form #}
+    <div class="card card-form">
+        <h3>Add Tag</h3>
+        <form method="POST" action="{{ url_for('main.add_tag', share_token=calendar.share_token, admin_token=calendar.admin_token) }}">
+            {{ form.hidden_tag() }}
+            <div class="form-row">
+                <div class="form-group" style="flex:2;">
+                    {{ form.name(class="form-input", placeholder="Tag name (e.g. Sports, Party)") }}
+                </div>
+                <div class="form-group" style="flex:0 0 60px;">
+                    {{ form.color(class="form-input form-input-color", type="color") }}
+                </div>
+                <div class="form-group" style="flex:0;">
+                    <button type="submit" class="btn btn-primary">Add</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    {# Tag list #}
+    <div class="tag-list">
+        {% for tag in tags %}
+        <div class="card tag-card">
+            <div class="tag-card-left">
+                <span class="tag-dot" style="background-color: {{ tag.color }};"></span>
+                <span class="tag-name">{{ tag.name }}</span>
+            </div>
+            <div class="tag-card-actions">
+                <form method="POST" class="tag-edit-form"
+                      action="{{ url_for('main.edit_tag', share_token=calendar.share_token, admin_token=calendar.admin_token, tag_id=tag.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="text" name="name" value="{{ tag.name }}" class="form-input form-input-sm" required>
+                    <input type="color" name="color" value="{{ tag.color }}" class="form-input-color-sm">
+                    <button type="submit" class="btn btn-sm btn-secondary">Save</button>
+                </form>
+                <form method="POST"
+                      action="{{ url_for('main.delete_tag', share_token=calendar.share_token, admin_token=calendar.admin_token, tag_id=tag.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-danger btn-confirm-delete"
+                            data-confirm="Delete tag &laquo;{{ tag.name }}&raquo;? It will be removed from all events.">Delete</button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-muted">No tags yet. Add your first one above!</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

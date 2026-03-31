@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ app_name }} — Impressum{% endblock %}
+
+{% block content %}
+<div class="card legal-page" style="max-width: 700px; margin: 2rem auto;">
+    <h1>Impressum</h1>
+    <p class="text-secondary">Legal notice according to § 5 TMG / § 25 MedienG</p>
+
+    {% if legal_name %}
+    <h3>Responsible for content</h3>
+    <p>{{ legal_name }}</p>
+    {% endif %}
+
+    {% if legal_address %}
+    <h3>Address</h3>
+    <p>{{ legal_address.replace('\\n', '<br>') | safe }}</p>
+    {% endif %}
+
+    {% if legal_email or legal_phone %}
+    <h3>Contact</h3>
+    {% if legal_email %}<p>Email: <a href="mailto:{{ legal_email }}">{{ legal_email }}</a></p>{% endif %}
+    {% if legal_phone %}<p>Phone: {{ legal_phone }}</p>{% endif %}
+    {% endif %}
+
+    {% if social_links %}
+    <h3>Find us online</h3>
+    <div class="social-links">
+        {% for link in social_links %}
+        <a href="{{ link.url }}" class="social-link" target="_blank" rel="noopener noreferrer" title="{{ link.label }}">
+            {% if link.icon_slug %}
+            <img class="social-icon" src="https://cdn.simpleicons.org/{{ link.icon_slug }}/cbd5e1" alt="{{ link.label }}" loading="lazy">
+            {% else %}
+            <span class="social-icon social-icon-emoji">🌐</span>
+            {% endif %}
+            <span class="social-label">{{ link.label }}</span>
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <h3>Liability for content</h3>
+    <p>
+        The content of this website has been created with the utmost care. However, we cannot
+        guarantee the accuracy, completeness, or timeliness of the content. As a service provider,
+        we are responsible for our own content on these pages under general law. However, we are
+        not obligated to monitor transmitted or stored third-party information or to investigate
+        circumstances that indicate illegal activity.
+    </p>
+
+    <h3>Liability for links</h3>
+    <p>
+        This site may contain links to external third-party websites over whose content we have
+        no influence. We therefore cannot accept any liability for this third-party content.
+        The respective provider or operator of the linked pages is always responsible for the
+        content of the linked pages.
+    </p>
+
+    {% if legal_extra %}
+    <h3>Additional information</h3>
+    <p>{{ legal_extra | safe }}</p>
+    {% endif %}
+
+    <p style="margin-top: 1.5rem;">
+        <a href="{{ url_for('main.index') }}" class="text-muted">← Back to home</a>
+    </p>
+</div>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends 'base_embed.html' %}
+{% from 'components/_calendar_agenda.html' import agenda_view %}
+
+{% block title %}{{ calendar.name }}{% endblock %}
+
+{% block content %}
+<div class="calendar-container embed-calendar">
+    <h2 class="embed-title">{{ calendar.name }}</h2>
+    {{ agenda_view(events, calendar, upcoming_birthdays=upcoming_birthdays|default([]), upcoming_holidays=upcoming_holidays|default([]), upcoming_weather=upcoming_weather|default([]), weather_by_date=weather_by_date|default({})) }}
+    <p class="tz-indicator">Times shown in {{ calendar.timezone }}</p>
+    <a href="{{ url_for('main.calendar_view', share_token=calendar.share_token) }}" target="_blank" class="embed-link">
+        Open full calendar ↗
+    </a>
+</div>
+{% endblock %}

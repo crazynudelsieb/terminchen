@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ app_name }}{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}{{ app_tagline }}{% endblock %}">
+    <meta name="robots" content="{% block robots %}index, follow{% endblock %}">
+
+    {# Canonical URL — prevents duplicate content across domains #}
+    <link rel="canonical" href="{% block canonical %}{{ seo_base_url }}{{ request.path }}{% endblock %}">
+
+    {# OpenGraph meta tags for rich link previews #}
+    <meta property="og:title" content="{% block og_title %}{{ app_name }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ app_tagline }}{% endblock %}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ seo_base_url }}{{ request.path }}">
+    <meta property="og:site_name" content="{{ app_name }}">
+    <meta property="og:locale" content="en_US">
+    {% block og_extra %}{% endblock %}
+
+    {# Twitter / X card meta #}
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{% block twitter_title %}{{ app_name }}{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}{{ app_tagline }}{% endblock %}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#16a34a">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <a href="{{ url_for('main.index') }}" class="logo">{{ app_name }}</a>
+            {% block header_nav %}
+            <a href="{{ url_for('main.index') }}" class="btn btn-sm btn-primary header-create-btn">+ New Calendar</a>
+            {% endblock %}
+        </div>
+    </header>
+
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>{{ app_name }} — {{ app_tagline }}</p>
+            <div class="footer-links">
+                {% if has_legal %}
+                <a href="{{ url_for('main.impressum') }}">Impressum</a>
+                <a href="{{ url_for('main.privacy') }}">Privacy</a>
+                {% endif %}
+                {% if github_url %}
+                <a href="{{ github_url }}" target="_blank" rel="noopener noreferrer" class="footer-github" title="View source on GitHub">
+                    <img src="https://cdn.simpleicons.org/github/94a3b8" alt="GitHub" class="footer-github-icon">GitHub
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/static/sw.js');}</script>
+    {% block scripts %}{% endblock %}
+    {% if cf_beacon_token %}
+    <!-- Cloudflare Web Analytics -->
+    <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "{{ cf_beacon_token }}"}'></script>
+    <!-- End Cloudflare Web Analytics -->
+    {% endif %}
+</body>
+</html>

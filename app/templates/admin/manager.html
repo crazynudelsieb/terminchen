@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% from 'components/_event_card.html' import event_card %}
+{% from 'components/_member_avatar.html' import avatar %}
+
+{% block title %}Manage — {{ calendar.name }}{% endblock %}
+
+{% block header_nav %}
+<nav class="cal-nav">
+    <span class="cal-name">{{ calendar.name }}</span>
+    <div class="admin-nav">
+        <a href="{{ url_for('main.calendar_view', share_token=calendar.share_token) }}" class="btn btn-sm">View Calendar</a>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="admin-dashboard">
+    <h1>Event Manager</h1>
+
+    {# Quick actions #}
+    <div class="card">
+        <h2>Events</h2>
+        <a href="{{ url_for('main.manager_create_event', share_token=calendar.share_token, manager_token=manager_token) }}" class="btn btn-primary">+ New Event</a>
+
+        <div class="event-list">
+            {% if events %}
+                {% for event in events %}
+                <div class="admin-event-row">
+                    {{ event_card(event, calendar, show_rsvp=True) }}
+                    <div class="admin-event-actions">
+                        <a href="{{ url_for('main.manager_edit_event', share_token=calendar.share_token, manager_token=manager_token, event_id=event.id) }}"
+                           class="btn btn-sm btn-secondary">Edit</a>
+                        <form method="POST" action="{{ url_for('main.duplicate_event_manager', share_token=calendar.share_token, manager_token=manager_token, event_id=event.id) }}"
+                              style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-secondary" title="Duplicate">Copy</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('main.manager_delete_event', share_token=calendar.share_token, manager_token=manager_token, event_id=event.id) }}"
+                              style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-danger btn-confirm-delete"
+                                    data-confirm="Delete this event?">Delete</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted">No upcoming events yet. Create your first one!</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {# Members overview (read-only) #}
+    <div class="card">
+        <h2>Members ({{ members|length }})</h2>
+        <div class="member-list-compact">
+            {% for member in members %}
+                <span class="member-chip">
+                    {{ avatar(member, 'sm') }} {{ member.name }}
+                </span>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}

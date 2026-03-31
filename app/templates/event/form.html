@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if editing %}Edit Event{% else %}New Event{% endif %} — {{ calendar.name }}{% endblock %}
+
+{% block header_nav %}
+<nav class="cal-nav">
+    {% if manager_token is defined and manager_token %}
+    <a href="{{ url_for('main.manager_dashboard', share_token=calendar.share_token, manager_token=manager_token) }}" class="btn btn-sm">← Dashboard</a>
+    {% else %}
+    <a href="{{ url_for('main.admin_dashboard', share_token=calendar.share_token, admin_token=calendar.admin_token) }}" class="btn btn-sm">← Dashboard</a>
+    {% endif %}
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="card card-form">
+    <h2>{% if editing %}Edit Event{% else %}New Event{% endif %}</h2>
+
+    <form method="POST" data-date-format="{{ calendar.date_format }}" data-time-format="{{ calendar.time_format }}">
+        {{ form.hidden_tag() }}
+
+        <div class="form-group">
+            {{ form.title.label(class="form-label") }}
+            {{ form.title(class="form-input", placeholder="Event title") }}
+            {% for error in form.title.errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div class="form-group">
+            {{ form.description.label(class="form-label") }}
+            {{ form.description(class="form-input form-textarea", placeholder="What's this event about?", rows=4) }}
+        </div>
+
+        <div class="form-row">
+            <div class="form-group form-group-half">
+                {{ form.start_date.label(class="form-label") }}
+                <div class="form-row form-row-tight">
+                    <input type="date" name="start_date" id="start_date"
+                           class="form-input" value="{{ form.start_date.data or '' }}" required>
+                    <input type="time" name="start_time" id="start_time"
+                           class="form-input time-input" value="{{ form.start_time_val|default('', true) }}">
+                </div>
+                {% for error in form.start_date.errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+            </div>
+            <div class="form-group form-group-half">
+                {{ form.end_date.label(class="form-label") }}
+                <div class="form-row form-row-tight">
+                    <input type="date" name="end_date" id="end_date"
+                           class="form-input" value="{{ form.end_date.data or '' }}">
+                    <input type="time" name="end_time" id="end_time"
+                           class="form-input time-input" value="{{ form.end_time_val|default('', true) }}">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group form-group-inline">
+            {{ form.all_day(class="form-checkbox") }}
+            {{ form.all_day.label(class="form-label-inline") }}
+        </div>
+
+        <div class="form-group">
+            {{ form.location.label(class="form-label") }}
+            {{ form.location(class="form-input", placeholder="e.g. Central Park") }}
+        </div>
+
+        <div class="form-group">
+            {{ form.location_url.label(class="form-label") }}
+            {{ form.location_url(class="form-input", placeholder="https://maps.google.com/...") }}
+            {% for error in form.location_url.errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div class="form-group">
+            {{ form.whatsapp_url.label(class="form-label") }}
+            {{ form.whatsapp_url(class="form-input", placeholder="https://chat.whatsapp.com/...") }}
+            {% for error in form.whatsapp_url.errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+        </div>
+
+        {% if tags is defined and tags %}
+        <div class="form-group">
+            <label class="form-label">Tags</label>
+            <div class="tag-checkboxes">
+                {% for tag in tags %}
+                <label class="tag-checkbox-label">
+                    <input type="checkbox" name="tags" value="{{ tag.id }}"
+                           {% if selected_tag_ids is defined and tag.id|string in selected_tag_ids %}checked{% endif %}>
+                    <span class="tag-dot" style="background-color: {{ tag.color }};"></span>
+                    {{ tag.name }}
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <p class="text-muted">Timezone: {{ calendar.timezone }}</p>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">{% if editing %}Save Changes{% else %}Create Event{% endif %}</button>
+            {% if manager_token is defined and manager_token %}
+            <a href="{{ url_for('main.manager_dashboard', share_token=calendar.share_token, manager_token=manager_token) }}" class="btn btn-secondary">Cancel</a>
+            {% else %}
+            <a href="{{ url_for('main.admin_dashboard', share_token=calendar.share_token, admin_token=calendar.admin_token) }}" class="btn btn-secondary">Cancel</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/datepicker.js') }}"></script>
+<script src="{{ url_for('static', filename='js/timepicker.js') }}"></script>
+<script>
+// Toggle time inputs visibility when "All Day" is checked
+(function() {
+    var allDayCheck = document.getElementById('all_day');
+    var timeInputs = document.querySelectorAll('.time-input');
+    if (!allDayCheck) return;
+    function toggle() {
+        timeInputs.forEach(function(el) {
+            el.style.display = allDayCheck.checked ? 'none' : '';
+        });
+    }
+    allDayCheck.addEventListener('change', toggle);
+    toggle(); // apply on page load
+})();
+</script>
+{% endblock %}
