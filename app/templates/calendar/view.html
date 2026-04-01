@@ -39,11 +39,13 @@
     {% elif view == 'week' %}
         {{ week_view(events, calendar, week_dates, events_by_date,
                       prev_week, next_week, today_str, members=members,
+                      selected_member_id=selected_member_id,
                       birthdays_by_date=birthdays_by_date|default({}),
                       holidays_by_date=holidays_by_date|default({}),
                       weather_by_date=weather_by_date|default({})) }}
     {% else %}
         {{ agenda_view(events, calendar, members=members,
+                        selected_member_id=selected_member_id,
                         upcoming_birthdays=upcoming_birthdays|default([]),
                         upcoming_holidays=upcoming_holidays|default([]),
                         upcoming_weather=upcoming_weather|default([]),

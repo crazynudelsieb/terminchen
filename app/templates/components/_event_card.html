@@ -1,7 +1,7 @@
 {# Event card — summary for calendar views #}
 {% from 'components/_member_avatar.html' import avatar %}
 
-{% macro event_card(event, calendar, show_rsvp=True, show_quick_rsvp=False, members=None) %}
+{% macro event_card(event, calendar, show_rsvp=True, show_quick_rsvp=False, members=None, selected_member_id=None) %}
 <div class="event-card">
     <div class="event-card-header">
         <span class="event-time">
@@ -43,11 +43,11 @@
     {% endif %}
 
     {% if show_quick_rsvp and members %}
-    <div class="quick-rsvp" data-event-id="{{ event.id }}" data-share-token="{{ calendar.share_token }}">
+    <div class="quick-rsvp" data-event-id="{{ event.id }}" data-share-token="{{ calendar.share_token }}" data-selected-member-id="{{ selected_member_id or '' }}">
         <select class="quick-rsvp-select form-input form-input-sm">
             <option value="">Who are you?</option>
-            {% for m in members %}
-            <option value="{{ m.id }}">{{ m.name }}</option>
+            {% for m in members|sort(attribute='name') %}
+            <option value="{{ m.id }}" {% if selected_member_id and selected_member_id == m.id|string %}selected{% endif %}>{{ m.name }}</option>
             {% endfor %}
         </select>
         <div class="quick-rsvp-buttons">

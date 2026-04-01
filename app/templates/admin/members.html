@@ -39,11 +39,15 @@
     <div class="member-list">
         {% for member in members %}
         <div class="card member-card {% if not member.is_active %}member-inactive{% endif %}">
-            <div class="member-card-left">
-                {{ avatar(member, 'lg') }}
-                <div class="member-info">
-                    <h3>{{ member.name }} {% if not member.is_active %}<span class="badge badge-muted">Inactive</span>{% endif %}</h3>
-                    {% if member.birthday %}<span class="text-muted" style="font-size: 0.85rem;">🎂 {{ member.birthday | formatdate(calendar.date_format) }}</span>{% endif %}
+            <div class="member-card-top">
+                <div class="member-card-left">
+                    {{ avatar(member, 'lg') }}
+                    <div class="member-info">
+                        <div class="member-title-row">
+                            <h3>{{ member.name }} {% if not member.is_active %}<span class="badge badge-muted">Inactive</span>{% endif %}</h3>
+                            {% if member.birthday %}<span class="text-muted member-birthday-inline">🎂 {{ member.birthday | formatdate(calendar.date_format) }}</span>{% endif %}
+                        </div>
+                    </div>
                 </div>
             </div>
 

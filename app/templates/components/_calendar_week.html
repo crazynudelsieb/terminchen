@@ -1,7 +1,7 @@
 {# Week view component #}
 {% from 'components/_event_card.html' import event_card %}
 
-{% macro week_view(events, calendar, week_dates, events_by_date, prev_week, next_week, today_str, members=None, birthdays_by_date={}, holidays_by_date={}, weather_by_date={}) %}
+{% macro week_view(events, calendar, week_dates, events_by_date, prev_week, next_week, today_str, members=None, selected_member_id=None, birthdays_by_date={}, holidays_by_date={}, weather_by_date={}) %}
 <div class="week-view">
     {# Week navigation #}
     <div class="week-nav">
@@ -51,7 +51,7 @@
                 {% if day_events %}
                     {% set has_any.val = true %}
                     {% for event in day_events %}
-                        {{ event_card(event, calendar, show_quick_rsvp=(members is not none), members=members) }}
+                        {{ event_card(event, calendar, show_quick_rsvp=(members is not none), members=members, selected_member_id=selected_member_id) }}
                     {% endfor %}
                 {% elif not day_birthdays and not day_holidays %}
                     <div class="week-day-empty">

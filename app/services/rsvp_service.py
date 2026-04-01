@@ -92,7 +92,7 @@ def get_rsvps_for_event(event):
     # Get all active members of the calendar
     all_members = Member.query.filter_by(
         calendar_id=event.calendar_id, is_active=True
-    ).order_by(Member.sort_order).all()
+    ).order_by(Member.name.asc(), Member.sort_order.asc()).all()
 
     # Build RSVP lookup
     rsvps = {r.member_id: r.status for r in event.rsvps}

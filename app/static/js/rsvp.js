@@ -6,14 +6,29 @@
 (function () {
     'use strict';
 
+    var MEMBER_KEY_PREFIX = 'terminchen_member_';
+    var LEGACY_MEMBER_KEY_PREFIX = 'zngai_member_';
+
     // ── Restore remembered member selections from localStorage ──
 
     function rememberMember(shareToken, memberId) {
-        try { localStorage.setItem('zngai_member_' + shareToken, memberId); } catch(e) {}
+        try {
+            localStorage.setItem(MEMBER_KEY_PREFIX + shareToken, memberId);
+            // Keep legacy key in sync for older clients/pages.
+            localStorage.setItem(LEGACY_MEMBER_KEY_PREFIX + shareToken, memberId);
+        } catch(e) {}
     }
 
     function getRememberedMember(shareToken) {
-        try { return localStorage.getItem('zngai_member_' + shareToken) || ''; } catch(e) { return ''; }
+        try {
+            return (
+                localStorage.getItem(MEMBER_KEY_PREFIX + shareToken) ||
+                localStorage.getItem(LEGACY_MEMBER_KEY_PREFIX + shareToken) ||
+                ''
+            );
+        } catch(e) {
+            return '';
+        }
     }
 
     function autoSelectMember(selectEl, shareToken) {
@@ -69,6 +84,11 @@
         var shareToken = container.dataset.shareToken;
         var select = container.querySelector('.quick-rsvp-select');
         var buttons = container.querySelectorAll('.btn-rsvp-quick');
+
+        // Prefer server-side remembered member from session when present.
+        if (select && !select.value && container.dataset.selectedMemberId) {
+            select.value = container.dataset.selectedMemberId;
+        }
 
         // Auto-select remembered member
         autoSelectMember(select, shareToken);

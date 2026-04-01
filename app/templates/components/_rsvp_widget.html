@@ -9,7 +9,7 @@
         <label for="rsvp-member-select">Who are you?</label>
         <select id="rsvp-member-select" class="form-select">
             <option value="">-- Select your name --</option>
-            {% for member in members %}
+            {% for member in members|sort(attribute='name') %}
                 <option value="{{ member.id }}" {% if selected_member_id and selected_member_id == member.id|string %}selected{% endif %}>
                     {{ member.name }}
                 </option>

@@ -1,7 +1,7 @@
 {# Agenda/list view component #}
 {% from 'components/_event_card.html' import event_card %}
 
-{% macro agenda_view(events, calendar, members=None, upcoming_birthdays=[], upcoming_holidays=[], upcoming_weather=[], weather_by_date={}, create_event_url=None) %}
+{% macro agenda_view(events, calendar, members=None, selected_member_id=None, upcoming_birthdays=[], upcoming_holidays=[], upcoming_weather=[], weather_by_date={}, create_event_url=None) %}
 <div class="agenda-view">
     {% if not events and not upcoming_birthdays and not upcoming_holidays and not upcoming_weather %}
         <div class="empty-state">
@@ -23,7 +23,7 @@
                     <h3>{{ event_date }}{% if day_w %} <span class="day-weather-info" title="{{ day_w.description }}: {{ day_w.temp_high|round|int }}° / {{ day_w.temp_low|round|int }}°">{{ day_w.icon }} {{ day_w.temp_high|round|int }}°/{{ day_w.temp_low|round|int }}°</span>{% endif %}</h3>
                 </div>
             {% endif %}
-            {{ event_card(event, calendar, show_quick_rsvp=(members is not none), members=members) }}
+            {{ event_card(event, calendar, show_quick_rsvp=(members is not none), members=members, selected_member_id=selected_member_id) }}
         {% endfor %}
 
         {% if upcoming_holidays %}
