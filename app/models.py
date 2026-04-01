@@ -59,7 +59,7 @@ class Calendar(db.Model):
     color_primary = db.Column(db.String(7), nullable=False, default='#16a34a')
     embed_allowed = db.Column(db.Boolean, nullable=False, default=True)
     time_format = db.Column(db.String(2), nullable=False, default='24')  # '24' or '12'
-    date_format = db.Column(db.String(2), nullable=False, default='EU')  # 'EU' (dd/mm) or 'US' (mm/dd)
+    date_format = db.Column(db.String(2), nullable=False, default='EU')  # 'EU' (dd.mm) or 'US' (mm/dd)
     show_birthdays = db.Column(db.Boolean, nullable=False, default=True)
     show_holidays = db.Column(db.Boolean, nullable=False, default=True)
     holiday_country = db.Column(db.String(2), nullable=True)  # ISO 3166-1 alpha-2; NULL = auto-detect

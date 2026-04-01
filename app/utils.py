@@ -58,7 +58,7 @@ def format_datetime_local(dt, tz_name, fmt='%Y-%m-%d %H:%M', time_format='24', d
         return ''
     local_dt = utc_to_local(dt, tz_name)
     if fmt == '%Y-%m-%d %H:%M':
-        date_part = local_dt.strftime('%d/%m/%Y') if date_format != 'US' else local_dt.strftime('%m/%d/%Y')
+        date_part = local_dt.strftime('%d.%m.%Y') if date_format != 'US' else local_dt.strftime('%m/%d/%Y')
         time_part = local_dt.strftime('%I:%M %p').lstrip('0') if time_format == '12' else local_dt.strftime('%H:%M')
         return f'{date_part} {time_part}'
     return local_dt.strftime(fmt)
@@ -68,7 +68,7 @@ def format_date_local(dt, tz_name, fmt='%a, %b %d, %Y', date_format='EU'):
     """Format a UTC datetime as a date string in a given timezone.
 
     date_format:
-        'EU' → "Mon, 30/03/2026"
+        'EU' → "Mon, 30.03.2026"
         'US' → "Mon, 03/30/2026"
     """
     if dt is None:
@@ -79,7 +79,7 @@ def format_date_local(dt, tz_name, fmt='%a, %b %d, %Y', date_format='EU'):
         if date_format == 'US':
             return local_dt.strftime('%a, %m/%d/%Y')
         else:  # EU default
-            return local_dt.strftime('%a, %d/%m/%Y')
+            return local_dt.strftime('%a, %d.%m.%Y')
     return local_dt.strftime(fmt)
 
 
@@ -87,7 +87,7 @@ def format_plain_date(d, date_format='EU'):
     """Format a date object (not datetime) for display.
 
     date_format:
-        'EU' → "Mon, 30/03/2026"
+        'EU' → "Mon, 30.03.2026"
         'US' → "Mon, 03/30/2026"
     """
     if d is None:
@@ -97,7 +97,7 @@ def format_plain_date(d, date_format='EU'):
         d = date_cls.fromisoformat(d)
     if date_format == 'US':
         return d.strftime('%a, %m/%d/%Y')
-    return d.strftime('%a, %d/%m/%Y')
+    return d.strftime('%a, %d.%m.%Y')
 
 
 def format_time_local(dt, tz_name, fmt='%H:%M', time_format='24'):

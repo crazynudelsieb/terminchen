@@ -3,7 +3,7 @@
  *
  * Replaces native <input type="date"> (which uses browser locale)
  * with a text input that shows the date in the calendar's configured format
- * (EU = dd/mm/yyyy, US = mm/dd/yyyy) while keeping a hidden field with ISO value.
+ * (EU = dd.mm.yyyy, US = mm/dd/yyyy) while keeping a hidden field with ISO value.
  *
  * Usage: Add class="date-input-wrap" and data-date-format="EU"|"US" to the input,
  * or set a global data-date-format on a parent .calendar-container / form.
@@ -32,7 +32,7 @@
     if (fmt === 'US') {
       return m + '/' + d + '/' + y;
     }
-    return d + '/' + m + '/' + y;
+    return d + '.' + m + '.' + y;
   }
 
   // Parse a display-format date back to ISO (YYYY-MM-DD)
@@ -40,19 +40,20 @@
     if (!displayStr) return '';
     // Already ISO format
     if (/^\d{4}-\d{2}-\d{2}$/.test(displayStr)) return displayStr;
-    var parts = displayStr.split('/');
+    // Accept both slash and dot separators for user convenience.
+    var parts = displayStr.split(/[\/.]/);
     if (parts.length !== 3) return displayStr;
     if (fmt === 'US') {
       // mm/dd/yyyy
       return parts[2] + '-' + parts[0].padStart(2, '0') + '-' + parts[1].padStart(2, '0');
     }
-    // dd/mm/yyyy (EU)
+    // dd.mm.yyyy (EU)
     return parts[2] + '-' + parts[1].padStart(2, '0') + '-' + parts[0].padStart(2, '0');
   }
 
   // Get placeholder text for the format
   function getPlaceholder(fmt) {
-    return fmt === 'US' ? 'mm/dd/yyyy' : 'dd/mm/yyyy';
+    return fmt === 'US' ? 'mm/dd/yyyy' : 'dd.mm.yyyy';
   }
 
   // Enhance all date inputs on the page

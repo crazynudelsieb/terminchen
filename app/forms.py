@@ -62,7 +62,7 @@ TIME_FORMAT_CHOICES = [
 ]
 
 DATE_FORMAT_CHOICES = [
-    ('EU', 'DD/MM/YYYY (30/03/2026)'),
+    ('EU', 'DD.MM.YYYY (30.03.2026)'),
     ('US', 'MM/DD/YYYY (03/30/2026)'),
 ]
 

@@ -49,7 +49,7 @@
     var d = pad(dt.getDate());
     var m = pad(dt.getMonth() + 1);
     var y = dt.getFullYear();
-    var datePart = dateFmt === 'US' ? (m + '/' + d + '/' + y) : (d + '/' + m + '/' + y);
+    var datePart = dateFmt === 'US' ? (m + '/' + d + '/' + y) : (d + '.' + m + '.' + y);
     if (allDay) return dayName + ', ' + datePart;
     var h = dt.getHours();
     var min = pad(dt.getMinutes());

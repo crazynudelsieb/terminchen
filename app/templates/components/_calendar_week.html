@@ -7,7 +7,7 @@
     <div class="week-nav">
         <a href="{{ url_for('main.calendar_week', share_token=calendar.share_token, start=prev_week) }}" class="btn btn-sm" aria-label="Previous week">‹</a>
         <h2 class="week-title">
-            {% if calendar.date_format == 'US' %}{{ week_dates[0].strftime('%m/%d') }} – {{ week_dates[6].strftime('%m/%d/%Y') }}{% else %}{{ week_dates[0].strftime('%d/%m') }} – {{ week_dates[6].strftime('%d/%m/%Y') }}{% endif %}
+            {% if calendar.date_format == 'US' %}{{ week_dates[0].strftime('%m/%d') }} – {{ week_dates[6].strftime('%m/%d/%Y') }}{% else %}{{ week_dates[0].strftime('%d.%m') }} – {{ week_dates[6].strftime('%d.%m.%Y') }}{% endif %}
         </h2>
         <a href="{{ url_for('main.calendar_week', share_token=calendar.share_token, start=next_week) }}" class="btn btn-sm" aria-label="Next week">›</a>
         <a href="{{ url_for('main.calendar_week', share_token=calendar.share_token) }}" class="btn btn-sm btn-today" aria-label="Jump to today">Today</a>
@@ -28,7 +28,7 @@
                 <div class="week-day-header">
                     <h3>
                         <span class="week-day-name">{{ day_dt.strftime('%a') }}</span>
-                        <span class="week-day-date">{% if calendar.date_format == 'US' %}{{ day_dt.strftime('%m/%d') }}{% else %}{{ day_dt.strftime('%d/%m') }}{% endif %}</span>
+                        <span class="week-day-date">{% if calendar.date_format == 'US' %}{{ day_dt.strftime('%m/%d') }}{% else %}{{ day_dt.strftime('%d.%m') }}{% endif %}</span>
                         {% if day_weather %}<span class="day-weather-info" title="{{ day_weather.description }}: {{ day_weather.temp_high|round|int }}° / {{ day_weather.temp_low|round|int }}°">{{ day_weather.icon }} {{ day_weather.temp_high|round|int }}°/{{ day_weather.temp_low|round|int }}°</span>{% endif %}
                     </h3>
                 </div>

@@ -575,25 +575,24 @@ main.container {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.5rem;
 }
 .recent-cal-item {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    border-radius: var(--radius);
+    padding: 0.65rem 0.85rem;
+    border-radius: var(--radius-sm);
     color: var(--text-primary);
     text-decoration: none;
     transition: background-color 0.15s;
     flex: 1;
 }
 .recent-cal-item:hover { background-color: var(--bg-tertiary); }
-.recent-cal-name { font-weight: 500; flex: 1; }
-.recent-cal-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-}
+.recent-cal-name { font-weight: 600; flex: 1; font-size: 1rem; }
 .recent-cal-badge {
     font-size: 0.7rem;
     font-weight: 600;

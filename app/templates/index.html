@@ -190,27 +190,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
             row.appendChild(a);
 
-            var actions = document.createElement('div');
-            actions.className = 'recent-cal-actions';
-
-            if (hasAdminAccess) {
-                var adminBtn = document.createElement('a');
-                adminBtn.href = '/cal/' + h.token + '/admin/' + h.admin_token + '?dashboard=1';
-                adminBtn.className = 'btn btn-sm btn-admin';
-                adminBtn.textContent = 'Admin';
-                actions.appendChild(adminBtn);
-            } else if (hasManagerAccess) {
-                var managerBtn = document.createElement('a');
-                managerBtn.href = '/cal/' + h.token + '/manage/' + h.manager_token + '/dashboard';
-                managerBtn.className = 'btn btn-sm btn-admin';
-                managerBtn.textContent = 'Admin';
-                actions.appendChild(managerBtn);
-            }
-
-            if (actions.children.length) {
-                row.appendChild(actions);
-            }
-
             list.appendChild(row);
         });
         wrap.style.display = '';
