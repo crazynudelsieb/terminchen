@@ -46,7 +46,7 @@
                 img.height = 160;
                 container.appendChild(img);
             }
-            container.style.display = 'block';
+            container.style.display = 'inline-block';
         });
     });
 })();

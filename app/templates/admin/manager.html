@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% from 'components/_share_links.html' import share_links %}
 {% from 'components/_event_card.html' import event_card %}
 {% from 'components/_member_avatar.html' import avatar %}
 
@@ -9,6 +10,8 @@
     <span class="cal-name">{{ calendar.name }}</span>
     <div class="admin-nav">
         <a href="{{ url_for('main.calendar_view', share_token=calendar.share_token) }}" class="btn btn-sm">View Calendar</a>
+        <a href="#manager-events" class="btn btn-sm" onclick="var b=document.getElementById('manager-events-body');if(b&&b.style.display==='none'){b.style.display='';var i=document.querySelector('[data-toggle=\'manager-events-body\'] .collapse-indicator');if(i)i.textContent='▾';}">Manager</a>
+        <a href="{{ url_for('main.manager_members_list', share_token=calendar.share_token, manager_token=manager_token) }}" class="btn btn-sm">Members</a>
     </div>
 </nav>
 {% endblock %}
@@ -17,53 +20,98 @@
 <div class="admin-dashboard">
     <h1>Event Manager</h1>
 
-    {# Quick actions #}
+    {# Share links (no admin link) #}
     <div class="card">
-        <h2>Events</h2>
-        <a href="{{ url_for('main.manager_create_event', share_token=calendar.share_token, manager_token=manager_token) }}" class="btn btn-primary">+ New Event</a>
-
-        <div class="event-list">
-            {% if events %}
-                {% for event in events %}
-                <div class="admin-event-row">
-                    {{ event_card(event, calendar, show_rsvp=True) }}
-                    <div class="admin-event-actions">
-                        <a href="{{ url_for('main.manager_edit_event', share_token=calendar.share_token, manager_token=manager_token, event_id=event.id) }}"
-                           class="btn btn-sm btn-secondary">Edit</a>
-                        <form method="POST" action="{{ url_for('main.duplicate_event_manager', share_token=calendar.share_token, manager_token=manager_token, event_id=event.id) }}"
-                              style="display:inline;">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm btn-secondary" title="Duplicate">Copy</button>
-                        </form>
-                        <form method="POST" action="{{ url_for('main.manager_delete_event', share_token=calendar.share_token, manager_token=manager_token, event_id=event.id) }}"
-                              style="display:inline;">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm btn-danger btn-confirm-delete"
-                                    data-confirm="Delete this event?">Delete</button>
-                        </form>
-                    </div>
-                </div>
-                {% endfor %}
-            {% else %}
-                <p class="text-muted">No upcoming events yet. Create your first one!</p>
-            {% endif %}
+        <h2 class="collapsible-header" data-toggle="manager-share-links-body" style="cursor:pointer;">
+            🔗 Share Links <span class="collapse-indicator">▾</span>
+        </h2>
+        <div id="manager-share-links-body" class="collapsible-body">
+            {{ share_links(calendar, show_admin=False) }}
         </div>
     </div>
 
-    {# Members overview (read-only) #}
+    {# Members overview #}
     <div class="card">
-        <h2>Members ({{ members|length }})</h2>
-        <div class="member-list-compact">
-            {% for member in members %}
-                <span class="member-chip">
-                    {{ avatar(member, 'sm') }} {{ member.name }}
-                </span>
-            {% endfor %}
+        <h2 class="collapsible-header" data-toggle="manager-members-body" style="cursor:pointer;">
+            👥 Members ({{ members|length }}) <span class="collapse-indicator">▾</span>
+        </h2>
+        <div id="manager-members-body" class="collapsible-body">
+            <div class="member-list-compact">
+                {% for member in members %}
+                    <span class="member-chip">
+                        {{ avatar(member, 'sm') }} {{ member.name }}
+                    </span>
+                {% endfor %}
+            </div>
+            <a href="{{ url_for('main.manager_members_list', share_token=calendar.share_token, manager_token=manager_token) }}" class="btn btn-sm btn-secondary" style="margin-top: 0.5rem;">Manage Members</a>
         </div>
-        <a href="{{ url_for('main.manager_members_list', share_token=calendar.share_token, manager_token=manager_token) }}" class="btn btn-sm btn-secondary" style="margin-top: 0.5rem;">Manage Members</a>
+    </div>
+
+    {# Quick actions #}
+    <div class="card" id="manager-events">
+        <h2 class="collapsible-header" data-toggle="manager-events-body" style="cursor:pointer;">
+            📅 Events <span class="collapse-indicator">▾</span>
+        </h2>
+        <div id="manager-events-body" class="collapsible-body">
+            <a href="{{ url_for('main.manager_create_event', share_token=calendar.share_token, manager_token=manager_token) }}" class="btn btn-primary">+ New Event</a>
+
+            <div class="event-list">
+                {% if events %}
+                    {% for event in events %}
+                    <div class="admin-event-row">
+                        {{ event_card(event, calendar, show_rsvp=True) }}
+                        <div class="admin-event-actions">
+                            <a href="{{ url_for('main.manager_edit_event', share_token=calendar.share_token, manager_token=manager_token, event_id=event.id) }}"
+                               class="btn btn-sm btn-secondary">Edit</a>
+                            <form method="POST" action="{{ url_for('main.duplicate_event_manager', share_token=calendar.share_token, manager_token=manager_token, event_id=event.id) }}"
+                                  style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-secondary" title="Duplicate">Copy</button>
+                            </form>
+                            <form method="POST" action="{{ url_for('main.manager_delete_event', share_token=calendar.share_token, manager_token=manager_token, event_id=event.id) }}"
+                                  style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-danger btn-confirm-delete"
+                                        data-confirm="Delete this event?">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No upcoming events yet. Create your first one!</p>
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/clipboard.js') }}"></script>
+<script src="{{ url_for('static', filename='js/collapsible.js') }}"></script>
+<script>
+// Track manager visit in localStorage history
+(function() {
+    var KEY = 'terminchen_history';
+    var token = '{{ calendar.share_token }}';
+    var name = {{ calendar.name | tojson }};
+    var managerToken = '{{ manager_token }}';
+    try {
+        var history = JSON.parse(localStorage.getItem(KEY) || '[]');
+        var existing = history.find(function(h) { return h.token === token; }) || {};
+        var adminToken = existing.admin_token || '';
+
+        history = history.filter(function(h) { return h.token !== token; });
+
+        var entry = {token: token, name: name, manager_token: managerToken, ts: Date.now()};
+        if (adminToken) entry.admin_token = adminToken;
+        history.unshift(entry);
+
+        if (history.length > 10) history = history.slice(0, 10);
+        localStorage.setItem(KEY, JSON.stringify(history));
+    } catch(e) {}
+})();
+
+window.initCollapsibleSections();
+</script>
 {% endblock %}
