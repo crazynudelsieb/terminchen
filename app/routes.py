@@ -628,7 +628,8 @@ def members_list(share_token, admin_token):
     form.color.data = secrets.choice(member_service.MEMBER_COLORS)
     icon_form = MemberIconForm()
     return render_template('admin/members.html',
-                           calendar=cal, members=members, form=form, icon_form=icon_form)
+                           calendar=cal, members=members, form=form, icon_form=icon_form,
+                           access_mode='admin', access_token=admin_token)
 
 
 @main.route('/cal/<share_token>/admin/<admin_token>/members/add', methods=['POST'])
@@ -709,6 +710,75 @@ def deactivate_member(share_token, admin_token, member_id):
         flash('Member reactivated.', 'success')
 
     return redirect(url_for('main.members_list', share_token=share_token, admin_token=admin_token))
+
+
+@main.route('/cal/<share_token>/manage/<manager_token>/members')
+def manager_members_list(share_token, manager_token):
+    """Member management page (manager access, no deactivate)."""
+    cal = _require_manager(share_token, manager_token)
+
+    session[f'manager_token_{share_token}'] = manager_token
+
+    members = member_service.get_all_members(cal)
+    form = MemberForm()
+    form.color.data = secrets.choice(member_service.MEMBER_COLORS)
+    icon_form = MemberIconForm()
+    return render_template('admin/members.html',
+                           calendar=cal, members=members, form=form, icon_form=icon_form,
+                           access_mode='manager', access_token=manager_token)
+
+
+@main.route('/cal/<share_token>/manage/<manager_token>/members/add', methods=['POST'])
+def manager_add_member(share_token, manager_token):
+    """Add a new member (manager access)."""
+    cal = _require_manager(share_token, manager_token)
+
+    form = MemberForm()
+    if form.validate_on_submit():
+        birthday = _parse_birthday(request.form.get('birthday'))
+        member_service.add_member(cal, name=form.name.data, color=form.color.data, birthday=birthday)
+        flash('Member added.', 'success')
+
+    return redirect(url_for('main.manager_members_list', share_token=share_token, manager_token=manager_token))
+
+
+@main.route('/cal/<share_token>/manage/<manager_token>/members/<member_id>/edit', methods=['POST'])
+def manager_edit_member(share_token, manager_token, member_id):
+    """Edit a member (manager access)."""
+    cal = _require_manager(share_token, manager_token)
+
+    member = member_service.get_member_by_id(_parse_uuid(member_id))
+    if not member or member.calendar_id != cal.id:
+        abort(404)
+
+    form = MemberForm()
+    if form.validate_on_submit():
+        birthday = _parse_birthday(request.form.get('birthday'))
+        member_service.update_member(member, name=form.name.data, color=form.color.data, birthday=birthday)
+        flash('Member updated.', 'success')
+
+    return redirect(url_for('main.manager_members_list', share_token=share_token, manager_token=manager_token))
+
+
+@main.route('/cal/<share_token>/manage/<manager_token>/members/<member_id>/icon', methods=['POST'])
+def manager_upload_member_icon(share_token, manager_token, member_id):
+    """Upload a member avatar icon (manager access)."""
+    cal = _require_manager(share_token, manager_token)
+
+    member = member_service.get_member_by_id(_parse_uuid(member_id))
+    if not member or member.calendar_id != cal.id:
+        abort(404)
+
+    form = MemberIconForm()
+    if form.validate_on_submit():
+        member_service.process_avatar_upload(
+            member, form.icon.data, current_app.config['UPLOAD_DIR']
+        )
+        flash('Avatar uploaded.', 'success')
+    else:
+        flash('Invalid image file.', 'error')
+
+    return redirect(url_for('main.manager_members_list', share_token=share_token, manager_token=manager_token))
 
 
 # ── Tag Management (Admin) ─────────────────────────────────

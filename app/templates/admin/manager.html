@@ -60,6 +60,7 @@
                 </span>
             {% endfor %}
         </div>
+        <a href="{{ url_for('main.manager_members_list', share_token=calendar.share_token, manager_token=manager_token) }}" class="btn btn-sm btn-secondary" style="margin-top: 0.5rem;">Manage Members</a>
     </div>
 </div>
 {% endblock %}

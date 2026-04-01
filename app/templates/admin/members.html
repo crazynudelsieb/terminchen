@@ -3,9 +3,15 @@
 
 {% block title %}Members — {{ calendar.name }}{% endblock %}
 
+{% set is_manager = access_mode == 'manager' %}
+
 {% block header_nav %}
 <nav class="cal-nav">
-    <a href="{{ url_for('main.admin_dashboard', share_token=calendar.share_token, admin_token=calendar.admin_token) }}" class="btn btn-sm">← Dashboard</a>
+    {% if is_manager %}
+    <a href="{{ url_for('main.manager_dashboard', share_token=calendar.share_token, manager_token=access_token) }}" class="btn btn-sm">← Dashboard</a>
+    {% else %}
+    <a href="{{ url_for('main.admin_dashboard', share_token=calendar.share_token, admin_token=access_token) }}" class="btn btn-sm">← Dashboard</a>
+    {% endif %}
 </nav>
 {% endblock %}
 
@@ -16,7 +22,7 @@
     {# Add member form #}
     <div class="card card-form">
         <h3>Add Member</h3>
-        <form method="POST" action="{{ url_for('main.add_member', share_token=calendar.share_token, admin_token=calendar.admin_token) }}" data-date-format="{{ calendar.date_format }}">
+        <form method="POST" action="{% if is_manager %}{{ url_for('main.manager_add_member', share_token=calendar.share_token, manager_token=access_token) }}{% else %}{{ url_for('main.add_member', share_token=calendar.share_token, admin_token=access_token) }}{% endif %}" data-date-format="{{ calendar.date_format }}">
             {{ form.hidden_tag() }}
             <div class="form-row">
                 <div class="form-group" style="flex:2;">
@@ -54,7 +60,7 @@
             <div class="member-card-actions">
                 {# Edit name/color inline form #}
                 <form method="POST" class="member-edit-form" data-date-format="{{ calendar.date_format }}"
-                      action="{{ url_for('main.edit_member', share_token=calendar.share_token, admin_token=calendar.admin_token, member_id=member.id) }}">
+                        action="{% if is_manager %}{{ url_for('main.manager_edit_member', share_token=calendar.share_token, manager_token=access_token, member_id=member.id) }}{% else %}{{ url_for('main.edit_member', share_token=calendar.share_token, admin_token=access_token, member_id=member.id) }}{% endif %}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="text" name="name" value="{{ member.name }}" class="form-input form-input-sm" required>
                     <input type="color" name="color" value="{{ member.color }}" class="form-input-color-sm">
@@ -64,7 +70,7 @@
 
                 {# Upload avatar #}
                 <form method="POST" enctype="multipart/form-data"
-                      action="{{ url_for('main.upload_member_icon', share_token=calendar.share_token, admin_token=calendar.admin_token, member_id=member.id) }}">
+                      action="{% if is_manager %}{{ url_for('main.manager_upload_member_icon', share_token=calendar.share_token, manager_token=access_token, member_id=member.id) }}{% else %}{{ url_for('main.upload_member_icon', share_token=calendar.share_token, admin_token=access_token, member_id=member.id) }}{% endif %}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <label class="btn btn-sm btn-secondary file-upload-btn">
                         📷 Avatar
@@ -73,8 +79,9 @@
                 </form>
 
                 {# Deactivate / reactivate #}
+                {% if not is_manager %}
                 <form method="POST"
-                      action="{{ url_for('main.deactivate_member', share_token=calendar.share_token, admin_token=calendar.admin_token, member_id=member.id) }}">
+                      action="{{ url_for('main.deactivate_member', share_token=calendar.share_token, admin_token=access_token, member_id=member.id) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     {% if member.is_active %}
                         <button type="submit" class="btn btn-sm btn-danger btn-confirm-delete" title="Deactivate"
@@ -83,6 +90,7 @@
                         <button type="submit" class="btn btn-sm btn-success" title="Reactivate">Reactivate</button>
                     {% endif %}
                 </form>
+                {% endif %}
             </div>
         </div>
         {% else %}
