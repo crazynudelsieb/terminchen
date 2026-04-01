@@ -2,6 +2,7 @@
 
 import logging
 import os
+import random
 import uuid
 
 from PIL import Image
@@ -17,8 +18,7 @@ logger = logging.getLogger(__name__)
 def add_member(calendar, name, color=None, birthday=None):
     """Add a member to a calendar. Auto-assigns color if not provided."""
     if not color:
-        idx = len(calendar.members) % len(MEMBER_COLORS)
-        color = MEMBER_COLORS[idx]
+        color = random.choice(MEMBER_COLORS)
 
     # Determine sort order (append at end)
     max_order = db.session.query(db.func.max(Member.sort_order)).filter_by(
