@@ -33,8 +33,10 @@ docker compose -f docker-compose.local.yml up --build
 ## Code Style
 
 - **Python**: Follow existing conventions in the codebase (no type hints, Flask patterns).
+- **Routes**: Admin/manager routes share logic via `_handle_*` helpers — don't duplicate.
 - **Templates**: Jinja2 with `_` prefix for partials/components.
 - **CSS/JS**: Vanilla only — no frameworks or build tools.
+- **Imports**: Keep at module level, no inline imports.
 - **Commits**: Use prefixes like `Add:`, `Fix:`, `Update:`, `Remove:`.
 
 ## What to Contribute

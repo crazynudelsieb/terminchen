@@ -2,7 +2,7 @@
  * terminchen — Event Countdown Widget
  *
  * Usage (embed on any page):
- *   <div id="zngai-countdown" data-token="SHARE_TOKEN" data-base="https://cal.example.com"></div>
+ *   <div id="terminchen-countdown" data-token="SHARE_TOKEN" data-base="https://cal.example.com"></div>
  *   <script src="https://cal.example.com/static/js/countdown.js"></script>
  *
  * The widget fetches the next upcoming event and shows a live countdown.
@@ -10,7 +10,9 @@
 (function () {
   'use strict';
 
-  var container = document.getElementById('zngai-countdown');
+  // Support both new and legacy element IDs
+  var container = document.getElementById('terminchen-countdown')
+                || document.getElementById('zngai-countdown');
   if (!container) return;
 
   var token = container.getAttribute('data-token');

@@ -45,6 +45,7 @@ def _run_migrations():
     from sqlalchemy import text
     migrations = [
         "ALTER TABLE calendar ADD COLUMN IF NOT EXISTS time_format VARCHAR(2) NOT NULL DEFAULT '24'",
+        "ALTER TABLE calendar ADD COLUMN IF NOT EXISTS date_format VARCHAR(2) NOT NULL DEFAULT 'EU'",
         "ALTER TABLE member ADD COLUMN IF NOT EXISTS birthday DATE",
         "ALTER TABLE calendar ADD COLUMN IF NOT EXISTS show_birthdays BOOLEAN NOT NULL DEFAULT TRUE",
         "ALTER TABLE calendar ADD COLUMN IF NOT EXISTS show_holidays BOOLEAN NOT NULL DEFAULT TRUE",

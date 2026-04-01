@@ -1,16 +1,10 @@
 """Shared utility functions."""
 
 import html
-import secrets
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import nh3
-
-
-def generate_token(nbytes=12):
-    """Generate a URL-safe token. 12 bytes → ~16 chars."""
-    return secrets.token_urlsafe(nbytes)
 
 
 def local_to_utc(naive_dt, tz_name):

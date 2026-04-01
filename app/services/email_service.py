@@ -10,6 +10,36 @@ from flask import current_app
 logger = logging.getLogger(__name__)
 
 
+def _send_smtp(msg, to_email):
+    """Send a MIME message via SMTP.  Returns True on success, False on failure."""
+    cfg = current_app.config
+    host = cfg['SMTP_HOST']
+    port = cfg['SMTP_PORT']
+    use_tls = cfg['SMTP_USE_TLS']
+    user = cfg['SMTP_USER']
+    password = cfg['SMTP_PASSWORD']
+    from_email = cfg['SMTP_FROM_EMAIL']
+
+    try:
+        if use_tls:
+            server = smtplib.SMTP(host, port, timeout=15)
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+        else:
+            server = smtplib.SMTP(host, port, timeout=15)
+
+        if user and password:
+            server.login(user, password)
+
+        server.sendmail(from_email, [to_email], msg.as_string())
+        server.quit()
+        return True
+    except Exception as exc:
+        logger.error("email.send_failed", extra={"to": to_email, "error": str(exc)})
+        return False
+
+
 def is_email_configured():
     """Check whether SMTP settings are filled in."""
     return bool(current_app.config.get('SMTP_HOST'))
@@ -74,33 +104,10 @@ def send_calendar_links(to_email, calendar_name, share_url, manager_url, admin_u
     msg.attach(MIMEText(text_body, 'plain'))
     msg.attach(MIMEText(html_body, 'html'))
 
-    try:
-        host = cfg['SMTP_HOST']
-        port = cfg['SMTP_PORT']
-        use_tls = cfg['SMTP_USE_TLS']
-        user = cfg['SMTP_USER']
-        password = cfg['SMTP_PASSWORD']
-
-        if use_tls:
-            server = smtplib.SMTP(host, port, timeout=15)
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
-        else:
-            server = smtplib.SMTP(host, port, timeout=15)
-
-        if user and password:
-            server.login(user, password)
-
-        server.sendmail(from_email, [to_email], msg.as_string())
-        server.quit()
-
+    if _send_smtp(msg, to_email):
         logger.info("email.sent", extra={"to": to_email, "calendar": calendar_name})
         return True
-
-    except Exception as exc:
-        logger.error("email.send_failed", extra={"to": to_email, "error": str(exc)})
-        return False
+    return False
 
 
 def send_recovery_email(to_email, calendars, base_url):
@@ -166,33 +173,10 @@ def send_recovery_email(to_email, calendars, base_url):
     msg.attach(MIMEText(text_body, 'plain'))
     msg.attach(MIMEText(html_body, 'html'))
 
-    try:
-        host = cfg['SMTP_HOST']
-        port = cfg['SMTP_PORT']
-        use_tls = cfg['SMTP_USE_TLS']
-        user = cfg['SMTP_USER']
-        password = cfg['SMTP_PASSWORD']
-
-        if use_tls:
-            server = smtplib.SMTP(host, port, timeout=15)
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
-        else:
-            server = smtplib.SMTP(host, port, timeout=15)
-
-        if user and password:
-            server.login(user, password)
-
-        server.sendmail(from_email, [to_email], msg.as_string())
-        server.quit()
-
+    if _send_smtp(msg, to_email):
         logger.info("email.recovery_sent", extra={"to": to_email, "count": len(calendars)})
         return True
-
-    except Exception as exc:
-        logger.error("email.recovery_failed", extra={"to": to_email, "error": str(exc)})
-        return False
+    return False
 
 
 def send_regenerated_tokens_email(to_email, calendar_name, share_url, manager_url, admin_url):
@@ -257,34 +241,9 @@ def send_regenerated_tokens_email(to_email, calendar_name, share_url, manager_ur
     msg.attach(MIMEText(text_body, 'plain'))
     msg.attach(MIMEText(html_body, 'html'))
 
-    try:
-        host = cfg['SMTP_HOST']
-        port = cfg['SMTP_PORT']
-        use_tls = cfg['SMTP_USE_TLS']
-        user = cfg['SMTP_USER']
-        password = cfg['SMTP_PASSWORD']
-
-        if use_tls:
-            server = smtplib.SMTP(host, port, timeout=15)
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
-        else:
-            server = smtplib.SMTP(host, port, timeout=15)
-
-        if user and password:
-            server.login(user, password)
-
-        server.sendmail(from_email, [to_email], msg.as_string())
-        server.quit()
-
+    if _send_smtp(msg, to_email):
         logger.info("email.tokens_regenerated_sent", extra={
             "to": to_email, "calendar": calendar_name
         })
         return True
-
-    except Exception as exc:
-        logger.error("email.tokens_regenerated_failed", extra={
-            "to": to_email, "error": str(exc)
-        })
-        return False
+    return False

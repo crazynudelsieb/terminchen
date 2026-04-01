@@ -4,16 +4,22 @@ Lightweight, account-free shared calendar for friend groups, clubs, and communit
 
 ## Features
 
-- **No accounts needed** — share calendars via token-based URLs
-- **RSVP** — in / maybe / out with member avatars
+- **No accounts needed** — share calendars via token-based URLs (3-tier: share / manager / admin)
+- **RSVP** — in / maybe / out with member avatars (DiceBear random avatars or custom uploads)
 - **iCal feed** — subscribe from Outlook, Google Calendar, Apple Calendar
-- **Embeddable** — drop an iframe or use the JSON API on your website
-- **Dark-mode-first** — mobile-first, dark-only UI
+- **Embeddable** — drop an iframe, use the JSON API, or embed a countdown widget
+- **Dark-mode-first** — mobile-first, dark-only UI with PWA install support
+- **Month / Week / Agenda views** — switchable calendar views with navigation
 - **Birthdays** — member birthdays shown across all views and in the iCal feed
 - **Public holidays** — local holiday overlay auto-detected from your timezone
 - **Weather forecast** — 14-day forecast overlay via Open-Meteo (no API key needed)
 - **Tags & filtering** — color-coded event tags with calendar-wide filter
 - **QR code sharing** — instant QR code for any calendar or event link
+- **Date & time formats** — configurable EU (dd.mm.yyyy) or US (mm/dd/yyyy), 12h or 24h
+- **Email notifications** — optional SMTP for calendar link delivery and recovery
+- **Token regeneration** — compromise recovery: regenerate all tokens at once
+- **Audit log** — track event and RSVP changes in the admin dashboard
+- **Bulk RSVP** — set all members to "in" with one click (admin only)
 
 ## Quick Start
 
@@ -79,6 +85,13 @@ All configuration is via environment variables. See [`.env.example`](.env.exampl
 | `DEFAULT_TIMEZONE` | Default timezone for new calendars | `Europe/Vienna` |
 | `DEFAULT_VIEW` | Default calendar view (`month`/`week`/`agenda`) | `month` |
 | `MAX_UPLOAD_SIZE_MB` | Max avatar upload size | `2` |
+| `SMTP_HOST` | SMTP server (leave empty to disable email) | *(empty)* |
+| `SMTP_PORT` | SMTP port | `587` |
+| `SMTP_USER` | SMTP username | *(empty)* |
+| `SMTP_PASSWORD` | SMTP password | *(empty)* |
+| `SECURE_COOKIES` | Enable secure cookies (set `true` behind HTTPS) | `false` |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated list of CORS origins for `/api/*` | *(empty)* |
+| `EMBED_ALLOWED_ORIGINS` | Comma-separated list of allowed iframe origins | *(empty)* |
 
 ## Project Structure
 
@@ -86,20 +99,27 @@ All configuration is via environment variables. See [`.env.example`](.env.exampl
 app/
 ├── __init__.py          # Flask factory
 ├── config.py            # Environment configuration
-├── models.py            # SQLAlchemy models
-├── routes.py            # All route handlers
+├── database.py          # SQLAlchemy setup & lightweight migrations
+├── models.py            # SQLAlchemy models (Calendar, Event, Member, RSVP, EventTag, AuditLog)
+├── routes.py            # All route handlers (shared helpers DRY admin/manager logic)
 ├── forms.py             # WTForms definitions
+├── utils.py             # Date/time formatting, sanitization, timezone helpers
+├── security.py          # CSP, HSTS, and security headers middleware
+├── error_handlers.py    # Custom 403/404/500 error pages
 ├── services/            # Business logic layer
 │   ├── calendar_service.py
 │   ├── event_service.py
 │   ├── rsvp_service.py
 │   ├── member_service.py
+│   ├── tag_service.py
+│   ├── feed_service.py  # iCal (.ics) feed generation
+│   ├── email_service.py # SMTP email delivery
+│   ├── audit_service.py
 │   ├── holiday_service.py
 │   ├── weather_service.py
-│   └── ...
+│   └── upload_service.py
 ├── templates/           # Jinja2 templates
-├── static/              # CSS, JS, icons
-└── security.py          # Security headers & middleware
+└── static/              # CSS, JS, icons, PWA assets
 ```
 
 ## Key URLs
@@ -108,10 +128,21 @@ app/
 |---|---|
 | `/` | Create a new calendar |
 | `/cal/<share_token>` | View calendar (read-only) |
-| `/cal/<share_token>/admin/<admin_token>` | Admin dashboard |
+| `/cal/<share_token>/manage/<manager_token>` | Manager access (create/edit events & members) |
+| `/cal/<share_token>/admin/<admin_token>` | Admin dashboard (full control) |
 | `/cal/<share_token>/feed.ics` | iCal subscription feed |
 | `/event/<event_token>` | Shareable event detail page |
 | `/cal/<share_token>/embed` | Embeddable calendar view |
+| `/recover` | Recover calendar links by email |
+
+### Countdown Widget
+
+Embed a live countdown to the next event on any page:
+
+```html
+<div id="terminchen-countdown" data-token="YOUR_SHARE_TOKEN" data-base="https://your-domain.com"></div>
+<script src="https://your-domain.com/static/js/countdown.js"></script>
+```
 
 ## Tech Stack
 

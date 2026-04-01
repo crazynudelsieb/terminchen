@@ -31,7 +31,7 @@ def generate_ical_feed(calendar):
 
     for event in events:
         vevent = icalendar.Event()
-        vevent.add('uid', f'{event.id}@zngai-cal')
+        vevent.add('uid', f'{event.id}@terminchen')
         vevent.add('summary', event.title)
 
         if event.all_day:
@@ -67,7 +67,7 @@ def generate_ical_feed(calendar):
             if not member.birthday:
                 continue
             vevent = icalendar.Event()
-            vevent.add('uid', f'birthday-{member.id}@zngai-cal')
+            vevent.add('uid', f'birthday-{member.id}@terminchen')
             vevent.add('summary', f'\U0001f382 {member.name}\'s birthday')
             vevent.add('dtstart', member.birthday)
             vevent.add('rrule', {'freq': 'yearly'})
@@ -85,7 +85,7 @@ def generate_ical_feed(calendar):
         for date_key, hols in holidays_by_date.items():
             for hol in hols:
                 vevent = icalendar.Event()
-                vevent.add('uid', f'holiday-{date_key}-{hol["name"]}@zngai-cal')
+                vevent.add('uid', f'holiday-{date_key}-{hol["name"]}@terminchen')
                 vevent.add('summary', f'\U0001f3db {hol["name"]}')
                 vevent.add('dtstart', date.fromisoformat(date_key))
                 vevent.add('transp', 'TRANSPARENT')

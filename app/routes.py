@@ -22,6 +22,7 @@ from app.forms import (
 from app.services import calendar_service, event_service, member_service, rsvp_service, feed_service
 from app.services import tag_service, audit_service, holiday_service, weather_service, email_service
 from app.services.upload_service import serve_avatar
+from app.utils import utc_to_local
 
 logger = logging.getLogger(__name__)
 
@@ -157,6 +158,170 @@ def _get_create_event_url(cal):
     if mgr_tok:
         return url_for('main.manager_create_event', share_token=share, manager_token=mgr_tok)
     return None
+
+
+# ── Shared handlers (DRY admin/manager logic) ───────────
+
+
+def _handle_add_member(cal, redirect_url):
+    """Shared: add a member then redirect."""
+    form = MemberForm()
+    if form.validate_on_submit():
+        birthday = _parse_birthday(request.form.get('birthday'))
+        member_service.add_member(cal, name=form.name.data, color=form.color.data, birthday=birthday)
+        flash('Member added.', 'success')
+    return redirect(redirect_url)
+
+
+def _handle_edit_member(cal, member_id, redirect_url):
+    """Shared: edit a member then redirect."""
+    member = member_service.get_member_by_id(_parse_uuid(member_id))
+    if not member or member.calendar_id != cal.id:
+        abort(404)
+    form = MemberForm()
+    if form.validate_on_submit():
+        birthday = _parse_birthday(request.form.get('birthday'))
+        member_service.update_member(member, name=form.name.data, color=form.color.data, birthday=birthday)
+        flash('Member updated.', 'success')
+    return redirect(redirect_url)
+
+
+def _handle_upload_icon(cal, member_id, redirect_url):
+    """Shared: upload member avatar then redirect."""
+    member = member_service.get_member_by_id(_parse_uuid(member_id))
+    if not member or member.calendar_id != cal.id:
+        abort(404)
+    form = MemberIconForm()
+    if form.validate_on_submit():
+        member_service.process_avatar_upload(
+            member, form.icon.data, current_app.config['UPLOAD_DIR']
+        )
+        flash('Avatar uploaded.', 'success')
+    else:
+        flash('Invalid image file.', 'error')
+    return redirect(redirect_url)
+
+
+def _handle_create_event(cal, success_redirect, template_extra=None):
+    """Shared: create event form GET/POST."""
+    form = EventForm()
+    tags = tag_service.get_tags_for_calendar(cal)
+
+    if request.method == 'GET' and request.args.get('date'):
+        form.start_date.data = request.args['date']
+
+    if form.validate_on_submit():
+        start_dt = _parse_event_datetime(form.start_date.data, request.form.get('start_time'))
+        end_dt = _parse_event_datetime(form.end_date.data, request.form.get('end_time'))
+
+        if not start_dt:
+            flash('Invalid start date/time.', 'error')
+            ctx = dict(calendar=cal, form=form, editing=False, tags=tags)
+            if template_extra:
+                ctx.update(template_extra)
+            return render_template('event/form.html', **ctx)
+
+        event = event_service.create_event(
+            calendar=cal,
+            title=form.title.data,
+            start_time_local=start_dt,
+            end_time_local=end_dt,
+            all_day=form.all_day.data,
+            description=form.description.data,
+            location=form.location.data,
+            location_url=form.location_url.data,
+            whatsapp_url=form.whatsapp_url.data,
+        )
+        selected_tag_ids = request.form.getlist('tags')
+        if selected_tag_ids:
+            tag_service.set_event_tags(event, selected_tag_ids, cal)
+
+        audit_service.log_action(cal, 'event.created', f'"{event.title}"')
+        flash('Event created.', 'success')
+        return redirect(success_redirect)
+
+    ctx = dict(calendar=cal, form=form, editing=False, tags=tags)
+    if template_extra:
+        ctx.update(template_extra)
+    return render_template('event/form.html', **ctx)
+
+
+def _handle_edit_event(cal, event_id, success_redirect, template_extra=None):
+    """Shared: edit event form GET/POST."""
+    event = event_service.get_event_by_id(_parse_uuid(event_id))
+    if not event or event.calendar_id != cal.id:
+        abort(404)
+
+    form = EventForm(obj=event)
+    tags = tag_service.get_tags_for_calendar(cal)
+    selected_tag_ids = [str(t.id) for t in event.tags]
+
+    if request.method == 'GET':
+        local_start = utc_to_local(event.start_time, cal.timezone)
+        form.start_date.data = local_start.strftime('%Y-%m-%d')
+        form.start_time_val = local_start.strftime('%H:%M')
+        if event.end_time:
+            local_end = utc_to_local(event.end_time, cal.timezone)
+            form.end_date.data = local_end.strftime('%Y-%m-%d')
+            form.end_time_val = local_end.strftime('%H:%M')
+
+    if form.validate_on_submit():
+        start_dt = _parse_event_datetime(form.start_date.data, request.form.get('start_time'))
+        end_dt = _parse_event_datetime(form.end_date.data, request.form.get('end_time'))
+
+        if not start_dt:
+            flash('Invalid start date/time.', 'error')
+            ctx = dict(calendar=cal, form=form, event=event, editing=True,
+                       tags=tags, selected_tag_ids=selected_tag_ids)
+            if template_extra:
+                ctx.update(template_extra)
+            return render_template('event/form.html', **ctx)
+
+        event_service.update_event(
+            event, cal,
+            title=form.title.data,
+            description=form.description.data,
+            start_time_local=start_dt,
+            end_time_local=end_dt,
+            all_day=form.all_day.data,
+            location=form.location.data,
+            location_url=form.location_url.data,
+            whatsapp_url=form.whatsapp_url.data,
+        )
+        tag_service.set_event_tags(event, request.form.getlist('tags'), cal)
+
+        audit_service.log_action(cal, 'event.updated', f'"{event.title}"')
+        flash('Event updated.', 'success')
+        return redirect(success_redirect)
+
+    ctx = dict(calendar=cal, form=form, event=event, editing=True,
+               tags=tags, selected_tag_ids=selected_tag_ids)
+    if template_extra:
+        ctx.update(template_extra)
+    return render_template('event/form.html', **ctx)
+
+
+def _handle_delete_event(cal, event_id, redirect_url, log=True):
+    """Shared: delete event then redirect."""
+    event = event_service.get_event_by_id(_parse_uuid(event_id))
+    if not event or event.calendar_id != cal.id:
+        abort(404)
+    event_title = event.title
+    event_service.delete_event(event)
+    if log:
+        audit_service.log_action(cal, 'event.deleted', f'"{event_title}"')
+    flash('Event deleted.', 'success')
+    return redirect(redirect_url)
+
+
+def _handle_duplicate_event(cal, event_id, edit_url_func):
+    """Shared: duplicate event then redirect to edit form."""
+    event = event_service.get_event_by_id(_parse_uuid(event_id))
+    if not event or event.calendar_id != cal.id:
+        abort(404)
+    new_event = event_service.duplicate_event(event, cal)
+    flash(f'Duplicated "{event.title}". Edit the copy to change the date.', 'success')
+    return redirect(edit_url_func(new_event.id))
 
 
 # ── Health ───────────────────────────────────────────────
@@ -639,14 +804,7 @@ def add_member(share_token, admin_token):
     cal, authenticated = _require_admin(share_token, admin_token)
     if not authenticated:
         abort(403)
-
-    form = MemberForm()
-    if form.validate_on_submit():
-        birthday = _parse_birthday(request.form.get('birthday'))
-        member_service.add_member(cal, name=form.name.data, color=form.color.data, birthday=birthday)
-        flash('Member added.', 'success')
-
-    return redirect(url_for('main.members_list', share_token=share_token, admin_token=admin_token))
+    return _handle_add_member(cal, url_for('main.members_list', share_token=share_token, admin_token=admin_token))
 
 
 @main.route('/cal/<share_token>/admin/<admin_token>/members/<member_id>/edit', methods=['POST'])
@@ -655,18 +813,7 @@ def edit_member(share_token, admin_token, member_id):
     cal, authenticated = _require_admin(share_token, admin_token)
     if not authenticated:
         abort(403)
-
-    member = member_service.get_member_by_id(_parse_uuid(member_id))
-    if not member or member.calendar_id != cal.id:
-        abort(404)
-
-    form = MemberForm()
-    if form.validate_on_submit():
-        birthday = _parse_birthday(request.form.get('birthday'))
-        member_service.update_member(member, name=form.name.data, color=form.color.data, birthday=birthday)
-        flash('Member updated.', 'success')
-
-    return redirect(url_for('main.members_list', share_token=share_token, admin_token=admin_token))
+    return _handle_edit_member(cal, member_id, url_for('main.members_list', share_token=share_token, admin_token=admin_token))
 
 
 @main.route('/cal/<share_token>/admin/<admin_token>/members/<member_id>/icon', methods=['POST'])
@@ -675,21 +822,7 @@ def upload_member_icon(share_token, admin_token, member_id):
     cal, authenticated = _require_admin(share_token, admin_token)
     if not authenticated:
         abort(403)
-
-    member = member_service.get_member_by_id(_parse_uuid(member_id))
-    if not member or member.calendar_id != cal.id:
-        abort(404)
-
-    form = MemberIconForm()
-    if form.validate_on_submit():
-        member_service.process_avatar_upload(
-            member, form.icon.data, current_app.config['UPLOAD_DIR']
-        )
-        flash('Avatar uploaded.', 'success')
-    else:
-        flash('Invalid image file.', 'error')
-
-    return redirect(url_for('main.members_list', share_token=share_token, admin_token=admin_token))
+    return _handle_upload_icon(cal, member_id, url_for('main.members_list', share_token=share_token, admin_token=admin_token))
 
 
 @main.route('/cal/<share_token>/admin/<admin_token>/members/<member_id>/deactivate', methods=['POST'])
@@ -733,53 +866,21 @@ def manager_members_list(share_token, manager_token):
 def manager_add_member(share_token, manager_token):
     """Add a new member (manager access)."""
     cal = _require_manager(share_token, manager_token)
-
-    form = MemberForm()
-    if form.validate_on_submit():
-        birthday = _parse_birthday(request.form.get('birthday'))
-        member_service.add_member(cal, name=form.name.data, color=form.color.data, birthday=birthday)
-        flash('Member added.', 'success')
-
-    return redirect(url_for('main.manager_members_list', share_token=share_token, manager_token=manager_token))
+    return _handle_add_member(cal, url_for('main.manager_members_list', share_token=share_token, manager_token=manager_token))
 
 
 @main.route('/cal/<share_token>/manage/<manager_token>/members/<member_id>/edit', methods=['POST'])
 def manager_edit_member(share_token, manager_token, member_id):
     """Edit a member (manager access)."""
     cal = _require_manager(share_token, manager_token)
-
-    member = member_service.get_member_by_id(_parse_uuid(member_id))
-    if not member or member.calendar_id != cal.id:
-        abort(404)
-
-    form = MemberForm()
-    if form.validate_on_submit():
-        birthday = _parse_birthday(request.form.get('birthday'))
-        member_service.update_member(member, name=form.name.data, color=form.color.data, birthday=birthday)
-        flash('Member updated.', 'success')
-
-    return redirect(url_for('main.manager_members_list', share_token=share_token, manager_token=manager_token))
+    return _handle_edit_member(cal, member_id, url_for('main.manager_members_list', share_token=share_token, manager_token=manager_token))
 
 
 @main.route('/cal/<share_token>/manage/<manager_token>/members/<member_id>/icon', methods=['POST'])
 def manager_upload_member_icon(share_token, manager_token, member_id):
     """Upload a member avatar icon (manager access)."""
     cal = _require_manager(share_token, manager_token)
-
-    member = member_service.get_member_by_id(_parse_uuid(member_id))
-    if not member or member.calendar_id != cal.id:
-        abort(404)
-
-    form = MemberIconForm()
-    if form.validate_on_submit():
-        member_service.process_avatar_upload(
-            member, form.icon.data, current_app.config['UPLOAD_DIR']
-        )
-        flash('Avatar uploaded.', 'success')
-    else:
-        flash('Invalid image file.', 'error')
-
-    return redirect(url_for('main.manager_members_list', share_token=share_token, manager_token=manager_token))
+    return _handle_upload_icon(cal, member_id, url_for('main.manager_members_list', share_token=share_token, manager_token=manager_token))
 
 
 # ── Tag Management (Admin) ─────────────────────────────────
@@ -852,43 +953,10 @@ def create_event(share_token, admin_token):
     if not authenticated:
         return redirect(url_for('main.admin_auth', share_token=share_token, admin_token=admin_token))
 
-    form = EventForm()
-    tags = tag_service.get_tags_for_calendar(cal)
-
-    # Prefill date from query param (click-to-create from calendar view)
-    if request.method == 'GET' and request.args.get('date'):
-        form.start_date.data = request.args['date']
-
-    if form.validate_on_submit():
-        start_dt = _parse_event_datetime(form.start_date.data, request.form.get('start_time'))
-        end_dt = _parse_event_datetime(form.end_date.data, request.form.get('end_time'))
-
-        if not start_dt:
-            flash('Invalid start date/time.', 'error')
-            return render_template('event/form.html', calendar=cal, form=form, editing=False, tags=tags)
-
-        event = event_service.create_event(
-            calendar=cal,
-            title=form.title.data,
-            start_time_local=start_dt,
-            end_time_local=end_dt,
-            all_day=form.all_day.data,
-            description=form.description.data,
-            location=form.location.data,
-            location_url=form.location_url.data,
-            whatsapp_url=form.whatsapp_url.data,
-        )
-        # Assign selected tags
-        selected_tag_ids = request.form.getlist('tags')
-        if selected_tag_ids:
-            tag_service.set_event_tags(event, selected_tag_ids, cal)
-
-        audit_service.log_action(cal, 'event.created', f'"{event.title}"')
-        flash('Event created.', 'success')
-        return redirect(url_for('main.admin_dashboard',
-                                share_token=share_token, admin_token=admin_token))
-
-    return render_template('event/form.html', calendar=cal, form=form, editing=False, tags=tags)
+    return _handle_create_event(
+        cal,
+        success_redirect=url_for('main.admin_dashboard', share_token=share_token, admin_token=admin_token),
+    )
 
 
 @main.route('/cal/<share_token>/admin/<admin_token>/event/<event_id>/edit', methods=['GET', 'POST'])
@@ -898,55 +966,10 @@ def edit_event(share_token, admin_token, event_id):
     if not authenticated:
         return redirect(url_for('main.admin_auth', share_token=share_token, admin_token=admin_token))
 
-    event = event_service.get_event_by_id(_parse_uuid(event_id))
-    if not event or event.calendar_id != cal.id:
-        abort(404)
-
-    form = EventForm(obj=event)
-    tags = tag_service.get_tags_for_calendar(cal)
-    selected_tag_ids = [str(t.id) for t in event.tags]
-
-    if request.method == 'GET':
-        # Pre-fill datetime fields in local time
-        from app.utils import utc_to_local
-        local_start = utc_to_local(event.start_time, cal.timezone)
-        form.start_date.data = local_start.strftime('%Y-%m-%d')
-        form.start_time_val = local_start.strftime('%H:%M')
-        if event.end_time:
-            local_end = utc_to_local(event.end_time, cal.timezone)
-            form.end_date.data = local_end.strftime('%Y-%m-%d')
-            form.end_time_val = local_end.strftime('%H:%M')
-
-    if form.validate_on_submit():
-        start_dt = _parse_event_datetime(form.start_date.data, request.form.get('start_time'))
-        end_dt = _parse_event_datetime(form.end_date.data, request.form.get('end_time'))
-
-        if not start_dt:
-            flash('Invalid start date/time.', 'error')
-            return render_template('event/form.html', calendar=cal, form=form,
-                                   event=event, editing=True, tags=tags, selected_tag_ids=selected_tag_ids)
-
-        event_service.update_event(
-            event, cal,
-            title=form.title.data,
-            description=form.description.data,
-            start_time_local=start_dt,
-            end_time_local=end_dt,
-            all_day=form.all_day.data,
-            location=form.location.data,
-            location_url=form.location_url.data,
-            whatsapp_url=form.whatsapp_url.data,
-        )
-        # Update tags
-        tag_service.set_event_tags(event, request.form.getlist('tags'), cal)
-
-        audit_service.log_action(cal, 'event.updated', f'"{event.title}"')
-        flash('Event updated.', 'success')
-        return redirect(url_for('main.admin_dashboard',
-                                share_token=share_token, admin_token=admin_token))
-
-    return render_template('event/form.html', calendar=cal, form=form,
-                           event=event, editing=True, tags=tags, selected_tag_ids=selected_tag_ids)
+    return _handle_edit_event(
+        cal, event_id,
+        success_redirect=url_for('main.admin_dashboard', share_token=share_token, admin_token=admin_token),
+    )
 
 
 @main.route('/cal/<share_token>/admin/<admin_token>/event/<event_id>/delete', methods=['POST'])
@@ -955,17 +978,10 @@ def delete_event(share_token, admin_token, event_id):
     cal, authenticated = _require_admin(share_token, admin_token)
     if not authenticated:
         abort(403)
-
-    event = event_service.get_event_by_id(_parse_uuid(event_id))
-    if not event or event.calendar_id != cal.id:
-        abort(404)
-
-    event_title = event.title
-    event_service.delete_event(event)
-    audit_service.log_action(cal, 'event.deleted', f'"{event_title}"')
-    flash('Event deleted.', 'success')
-    return redirect(url_for('main.admin_dashboard',
-                            share_token=share_token, admin_token=admin_token))
+    return _handle_delete_event(
+        cal, event_id,
+        redirect_url=url_for('main.admin_dashboard', share_token=share_token, admin_token=admin_token),
+    )
 
 
 @main.route('/cal/<share_token>/admin/<admin_token>/event/<event_id>/duplicate', methods=['POST'])
@@ -974,16 +990,8 @@ def duplicate_event_admin(share_token, admin_token, event_id):
     cal, authenticated = _require_admin(share_token, admin_token)
     if not authenticated:
         abort(403)
-
-    event = event_service.get_event_by_id(_parse_uuid(event_id))
-    if not event or event.calendar_id != cal.id:
-        abort(404)
-
-    new_event = event_service.duplicate_event(event, cal)
-    flash(f'Duplicated "{event.title}". Edit the copy to change the date.', 'success')
-    return redirect(url_for('main.edit_event',
-                            share_token=share_token, admin_token=admin_token,
-                            event_id=new_event.id))
+    return _handle_duplicate_event(cal, event_id, lambda eid: url_for(
+        'main.edit_event', share_token=share_token, admin_token=admin_token, event_id=eid))
 
 
 @main.route('/cal/<share_token>/admin/<admin_token>/event/<event_id>/bulk-rsvp', methods=['POST'])
@@ -1043,130 +1051,40 @@ def manager_dashboard(share_token, manager_token):
 def manager_create_event(share_token, manager_token):
     """Create a new event (manager access)."""
     cal = _require_manager(share_token, manager_token)
-
-    form = EventForm()
-    tags = tag_service.get_tags_for_calendar(cal)
-
-    # Prefill date from query param (click-to-create from calendar view)
-    if request.method == 'GET' and request.args.get('date'):
-        form.start_date.data = request.args['date']
-
-    if form.validate_on_submit():
-        start_dt = _parse_event_datetime(form.start_date.data, request.form.get('start_time'))
-        end_dt = _parse_event_datetime(form.end_date.data, request.form.get('end_time'))
-
-        if not start_dt:
-            flash('Invalid start date/time.', 'error')
-            return render_template('event/form.html', calendar=cal, form=form,
-                                   editing=False, manager_token=manager_token, tags=tags)
-
-        event = event_service.create_event(
-            calendar=cal,
-            title=form.title.data,
-            start_time_local=start_dt,
-            end_time_local=end_dt,
-            all_day=form.all_day.data,
-            description=form.description.data,
-            location=form.location.data,
-            location_url=form.location_url.data,
-            whatsapp_url=form.whatsapp_url.data,
-        )
-        selected_tag_ids = request.form.getlist('tags')
-        if selected_tag_ids:
-            tag_service.set_event_tags(event, selected_tag_ids, cal)
-
-        flash('Event created.', 'success')
-        return redirect(url_for('main.manager_dashboard',
-                                share_token=share_token, manager_token=manager_token))
-
-    return render_template('event/form.html', calendar=cal, form=form,
-                           editing=False, manager_token=manager_token, tags=tags)
+    return _handle_create_event(
+        cal,
+        success_redirect=url_for('main.manager_dashboard', share_token=share_token, manager_token=manager_token),
+        template_extra={'manager_token': manager_token},
+    )
 
 
 @main.route('/cal/<share_token>/manage/<manager_token>/event/<event_id>/edit', methods=['GET', 'POST'])
 def manager_edit_event(share_token, manager_token, event_id):
     """Edit an existing event (manager access)."""
     cal = _require_manager(share_token, manager_token)
-
-    event = event_service.get_event_by_id(_parse_uuid(event_id))
-    if not event or event.calendar_id != cal.id:
-        abort(404)
-
-    form = EventForm(obj=event)
-    tags = tag_service.get_tags_for_calendar(cal)
-    selected_tag_ids = [str(t.id) for t in event.tags]
-
-    if request.method == 'GET':
-        from app.utils import utc_to_local
-        local_start = utc_to_local(event.start_time, cal.timezone)
-        form.start_date.data = local_start.strftime('%Y-%m-%d')
-        form.start_time_val = local_start.strftime('%H:%M')
-        if event.end_time:
-            local_end = utc_to_local(event.end_time, cal.timezone)
-            form.end_date.data = local_end.strftime('%Y-%m-%d')
-            form.end_time_val = local_end.strftime('%H:%M')
-
-    if form.validate_on_submit():
-        start_dt = _parse_event_datetime(form.start_date.data, request.form.get('start_time'))
-        end_dt = _parse_event_datetime(form.end_date.data, request.form.get('end_time'))
-
-        if not start_dt:
-            flash('Invalid start date/time.', 'error')
-            return render_template('event/form.html', calendar=cal, form=form,
-                                   event=event, editing=True, manager_token=manager_token,
-                                   tags=tags, selected_tag_ids=selected_tag_ids)
-
-        event_service.update_event(
-            event, cal,
-            title=form.title.data,
-            description=form.description.data,
-            start_time_local=start_dt,
-            end_time_local=end_dt,
-            all_day=form.all_day.data,
-            location=form.location.data,
-            location_url=form.location_url.data,
-            whatsapp_url=form.whatsapp_url.data,
-        )
-        tag_service.set_event_tags(event, request.form.getlist('tags'), cal)
-
-        flash('Event updated.', 'success')
-        return redirect(url_for('main.manager_dashboard',
-                                share_token=share_token, manager_token=manager_token))
-
-    return render_template('event/form.html', calendar=cal, form=form,
-                           event=event, editing=True, manager_token=manager_token,
-                           tags=tags, selected_tag_ids=selected_tag_ids)
+    return _handle_edit_event(
+        cal, event_id,
+        success_redirect=url_for('main.manager_dashboard', share_token=share_token, manager_token=manager_token),
+        template_extra={'manager_token': manager_token},
+    )
 
 
 @main.route('/cal/<share_token>/manage/<manager_token>/event/<event_id>/delete', methods=['POST'])
 def manager_delete_event(share_token, manager_token, event_id):
     """Delete an event (manager access)."""
     cal = _require_manager(share_token, manager_token)
-
-    event = event_service.get_event_by_id(_parse_uuid(event_id))
-    if not event or event.calendar_id != cal.id:
-        abort(404)
-
-    event_service.delete_event(event)
-    flash('Event deleted.', 'success')
-    return redirect(url_for('main.manager_dashboard',
-                            share_token=share_token, manager_token=manager_token))
+    return _handle_delete_event(
+        cal, event_id,
+        redirect_url=url_for('main.manager_dashboard', share_token=share_token, manager_token=manager_token),
+    )
 
 
 @main.route('/cal/<share_token>/manage/<manager_token>/event/<event_id>/duplicate', methods=['POST'])
 def duplicate_event_manager(share_token, manager_token, event_id):
     """Duplicate an event (manager)."""
     cal = _require_manager(share_token, manager_token)
-
-    event = event_service.get_event_by_id(_parse_uuid(event_id))
-    if not event or event.calendar_id != cal.id:
-        abort(404)
-
-    new_event = event_service.duplicate_event(event, cal)
-    flash(f'Duplicated "{event.title}". Edit the copy to change the date.', 'success')
-    return redirect(url_for('main.manager_edit_event',
-                            share_token=share_token, manager_token=manager_token,
-                            event_id=new_event.id))
+    return _handle_duplicate_event(cal, event_id, lambda eid: url_for(
+        'main.manager_edit_event', share_token=share_token, manager_token=manager_token, event_id=eid))
 
 # ── Event Views (Read-Only) ─────────────────────────────
 
