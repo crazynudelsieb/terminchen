@@ -4,7 +4,7 @@
 
 {% block header_nav %}
 <nav class="cal-nav">
-    <a href="{{ url_for('main.admin_dashboard', share_token=calendar.share_token, admin_token=calendar.admin_token) }}" class="btn btn-sm">← Dashboard</a>
+    <a href="{{ url_for('main.admin_dashboard', share_token=calendar.share_token, admin_token=calendar.admin_token, dashboard=1) }}" class="btn btn-sm">← Dashboard</a>
 </nav>
 {% endblock %}
 

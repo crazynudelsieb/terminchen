@@ -12,15 +12,10 @@
     <div class="admin-nav">
         <a href="{{ url_for('main.calendar_view', share_token=calendar.share_token) }}" class="btn btn-sm">View Calendar</a>
         {% if is_admin %}
-        <a href="#settings" class="btn btn-sm" onclick="var b=document.getElementById('settings-body');if(b&amp;&amp;b.style.display==='none'){b.style.display='';var i=document.querySelector('#settings .collapse-indicator');if(i)i.textContent='▾';}">Admin</a>
-        {% else %}
-        <a href="#events" class="btn btn-sm" onclick="var b=document.getElementById('events-body');if(b&amp;&amp;b.style.display==='none'){b.style.display='';var i=document.querySelector('[data-toggle=\'events-body\'] .collapse-indicator');if(i)i.textContent='▾';}">Admin</a>
-        {% endif %}
-        {% if is_admin %}
-        <a href="{{ url_for('main.members_list', share_token=calendar.share_token, admin_token=access_token) }}" class="btn btn-sm">Members</a>
+        <a href="{{ url_for('main.members_list', share_token=calendar.share_token, admin_token=access_token) }}" class="btn btn-sm">Manage Members</a>
         <a href="{{ url_for('main.tags_list', share_token=calendar.share_token, admin_token=access_token) }}" class="btn btn-sm">Tags</a>
         {% else %}
-        <a href="{{ url_for('main.manager_members_list', share_token=calendar.share_token, manager_token=access_token) }}" class="btn btn-sm">Members</a>
+        <a href="{{ url_for('main.manager_members_list', share_token=calendar.share_token, manager_token=access_token) }}" class="btn btn-sm">Manage Members</a>
         {% endif %}
     </div>
 </nav>

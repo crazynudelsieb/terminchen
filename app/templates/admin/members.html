@@ -10,7 +10,7 @@
     {% if is_manager %}
     <a href="{{ url_for('main.manager_dashboard', share_token=calendar.share_token, manager_token=access_token) }}" class="btn btn-sm">← Dashboard</a>
     {% else %}
-    <a href="{{ url_for('main.admin_dashboard', share_token=calendar.share_token, admin_token=access_token) }}" class="btn btn-sm">← Dashboard</a>
+    <a href="{{ url_for('main.admin_dashboard', share_token=calendar.share_token, admin_token=access_token, dashboard=1) }}" class="btn btn-sm">← Dashboard</a>
     {% endif %}
 </nav>
 {% endblock %}
