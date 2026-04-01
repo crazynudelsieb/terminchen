@@ -2,6 +2,7 @@
 
 import calendar as cal_mod
 import logging
+import os
 import secrets
 import uuid
 from datetime import date, datetime, timedelta, timezone
@@ -1359,6 +1360,134 @@ def uploaded_avatar(filename):
     return response
 
 
+# ── PWA: Share Target ────────────────────────────────────
+
+
+@main.route('/share')
+def share_target():
+    """Handle incoming shares from the OS share dialog (PWA share_target).
+
+    Receives title/text/url as GET query params and shows them on the
+    landing page so the user can create a new event from the shared content.
+    """
+    shared_title = request.args.get('title', '').strip()
+    shared_text = request.args.get('text', '').strip()
+    shared_url = request.args.get('url', '').strip()
+
+    # Build a human-readable summary
+    parts = [p for p in (shared_title, shared_text, shared_url) if p]
+    if parts:
+        summary = ' — '.join(parts)
+        flash(f'Shared content received: {summary}', 'info')
+    else:
+        flash('Share received, but no content was included.', 'warning')
+
+    form = CreateCalendarForm()
+    return render_template('index.html', form=form,
+                           shared_title=shared_title,
+                           shared_text=shared_text,
+                           shared_url=shared_url)
+
+
+# ── PWA: Protocol Handler ────────────────────────────────
+
+
+@main.route('/open')
+def protocol_handler():
+    """Handle web+terminchen:// protocol links.
+
+    Expected URL format: /open?url=web+terminchen://<share_token>
+    Redirects to the calendar view for that share token.
+    """
+    raw_url = request.args.get('url', '').strip()
+
+    # Parse the share token from  web+terminchen://<token>  or  web+terminchen:<token>
+    token = ''
+    for prefix in ('web+terminchen://', 'web+terminchen:'):
+        if raw_url.startswith(prefix):
+            token = raw_url[len(prefix):].strip().rstrip('/')
+            break
+
+    if token:
+        # Validate token looks like a UUID
+        try:
+            uuid.UUID(token)
+            return redirect(url_for('main.calendar_default_view', share_token=token))
+        except (ValueError, AttributeError):
+            pass
+
+    flash('Invalid calendar link.', 'error')
+    return redirect(url_for('main.index'))
+
+
+# ── PWA: ICS File Handler ────────────────────────────────
+
+
+@main.route('/import-ics', methods=['GET', 'POST'])
+def import_ics():
+    """Handle .ics file opens (PWA file_handlers).
+
+    GET: Show an upload form.
+    POST: Parse the uploaded .ics file and show a preview of the events found.
+    """
+    if request.method == 'GET':
+        return render_template('import_ics.html', events=None)
+
+    # POST — process the uploaded file
+    import icalendar
+
+    ics_file = request.files.get('ics_file')
+    if not ics_file or not ics_file.filename:
+        flash('Please select an .ics file to import.', 'error')
+        return render_template('import_ics.html', events=None)
+
+    try:
+        raw = ics_file.read()
+        cal = icalendar.Calendar.from_ical(raw)
+    except Exception:
+        flash('Could not parse the .ics file. Make sure it is a valid iCalendar file.', 'error')
+        return render_template('import_ics.html', events=None)
+
+    parsed_events = []
+    for component in cal.walk():
+        if component.name != 'VEVENT':
+            continue
+        summary = str(component.get('summary', 'Untitled'))
+        dtstart = component.get('dtstart')
+        dtend = component.get('dtend')
+        description = str(component.get('description', '')) if component.get('description') else ''
+        location = str(component.get('location', '')) if component.get('location') else ''
+
+        start_dt = dtstart.dt if dtstart else None
+        end_dt = dtend.dt if dtend else None
+        all_day = not hasattr(start_dt, 'hour') if start_dt else False
+
+        parsed_events.append({
+            'title': summary,
+            'start': str(start_dt) if start_dt else '',
+            'end': str(end_dt) if end_dt else '',
+            'all_day': all_day,
+            'description': description[:500],
+            'location': location[:200],
+        })
+
+    if not parsed_events:
+        flash('No events found in the .ics file.', 'warning')
+    else:
+        flash(f'Found {len(parsed_events)} event(s) in the file. Create a calendar to import them.', 'info')
+
+    return render_template('import_ics.html', events=parsed_events)
+
+
+# ── PWA: Offline Fallback ────────────────────────────────
+
+
+@main.route('/offline')
+def offline():
+    """Serve offline fallback page (cached by Service Worker)."""
+    return render_template('errors/offline.html')
+
+
 # ── JSON API (for integration) ───────────────────────────
 
 
@@ -1490,3 +1619,88 @@ def api_next_event(share_token):
             'rsvp_summary': e.rsvp_summary,
         },
     )
+
+
+# ── Push Notification API ────────────────────────────────
+
+
+@main.route('/api/push/vapid-key')
+def api_vapid_key():
+    """Return the VAPID public key (needed by the browser to subscribe)."""
+    from app.services import push_service
+    if not push_service.is_push_enabled():
+        return jsonify(enabled=False), 200
+    return jsonify(enabled=True, key=push_service.get_vapid_public_key())
+
+
+@main.route('/api/cal/<share_token>/push/subscribe', methods=['POST'])
+def api_push_subscribe(share_token):
+    """Register a push subscription for a calendar."""
+    from app.services import push_service
+    if not push_service.is_push_enabled():
+        return jsonify(error='Push notifications not configured'), 501
+
+    cal = _get_calendar_or_404(share_token)
+    data = request.get_json(silent=True) or {}
+
+    endpoint = data.get('endpoint')
+    keys = data.get('keys', {})
+    p256dh = keys.get('p256dh')
+    auth = keys.get('auth')
+    member_id_str = data.get('member_id')
+
+    if not endpoint or not p256dh or not auth:
+        return jsonify(error='endpoint, keys.p256dh, keys.auth required'), 400
+
+    member_id = None
+    if member_id_str:
+        try:
+            member_id = uuid.UUID(member_id_str)
+        except (ValueError, AttributeError):
+            pass
+
+    push_service.subscribe(cal.id, endpoint, p256dh, auth, member_id)
+    return jsonify(ok=True)
+
+
+@main.route('/api/cal/<share_token>/push/unsubscribe', methods=['POST'])
+def api_push_unsubscribe(share_token):
+    """Remove a push subscription."""
+    from app.services import push_service
+    _get_calendar_or_404(share_token)  # validate calendar exists
+
+    data = request.get_json(silent=True) or {}
+    endpoint = data.get('endpoint', '')
+    push_service.unsubscribe(endpoint)
+    return jsonify(ok=True)
+
+
+# ── Store Packaging: Android Asset Links ─────────────────
+
+
+@main.route('/.well-known/assetlinks.json')
+def assetlinks():
+    """Serve Digital Asset Links for Android TWA (Trusted Web Activity).
+
+    Returns an empty array by default. To enable TWA verification, set the
+    ANDROID_PACKAGE_NAME and ANDROID_SHA256_FINGERPRINT env vars.
+    """
+    pkg = current_app.config.get('ANDROID_PACKAGE_NAME', os.environ.get('ANDROID_PACKAGE_NAME', ''))
+    fingerprint = current_app.config.get('ANDROID_SHA256_FINGERPRINT', os.environ.get('ANDROID_SHA256_FINGERPRINT', ''))
+
+    if pkg and fingerprint:
+        links = [{
+            'relation': ['delegate_permission/common.handle_all_urls'],
+            'target': {
+                'namespace': 'android_app',
+                'package_name': pkg,
+                'sha256_cert_fingerprints': [fingerprint],
+            },
+        }]
+    else:
+        links = []
+
+    response = make_response(jsonify(links))
+    response.headers['Content-Type'] = 'application/json'
+    response.headers['Cache-Control'] = 'public, max-age=86400'
+    return response

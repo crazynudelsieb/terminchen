@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Import .ics — {{ app_name }}{% endblock %}
+{% block meta_description %}Import events from an .ics calendar file into {{ app_name }}.{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:640px;">
+    <h1 style="margin-bottom:0.5rem;">📁 Import .ics File</h1>
+    <p style="color:var(--text-secondary);margin-bottom:1.5rem;">
+        Upload an <code>.ics</code> calendar file to preview its events.
+        You can then create a new calendar to add them.
+    </p>
+
+    <form method="POST" enctype="multipart/form-data" class="card" style="padding:1.5rem;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-row" style="margin-bottom:1rem;">
+            <label for="ics_file" class="form-label">Calendar file (.ics)</label>
+            <input type="file" id="ics_file" name="ics_file" accept=".ics,text/calendar"
+                   class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Upload & Preview</button>
+    </form>
+
+    {% if events %}
+    <div class="card" style="padding:1.5rem;margin-top:1.5rem;">
+        <h2 style="margin-bottom:1rem;">Found {{ events|length }} event{{ 's' if events|length != 1 }}</h2>
+        <div style="display:flex;flex-direction:column;gap:0.75rem;">
+            {% for ev in events %}
+            <div style="padding:0.75rem;background:var(--bg-tertiary);border-radius:0.5rem;">
+                <div style="font-weight:600;color:var(--text-primary);">{{ ev.title }}</div>
+                <div style="font-size:0.85rem;color:var(--text-secondary);">
+                    {{ ev.start }}{% if ev.end %} → {{ ev.end }}{% endif %}
+                    {% if ev.all_day %}<span style="color:var(--accent-primary);margin-left:0.5rem;">All day</span>{% endif %}
+                </div>
+                {% if ev.location %}
+                <div style="font-size:0.85rem;color:var(--text-secondary);">📍 {{ ev.location }}</div>
+                {% endif %}
+                {% if ev.description %}
+                <div style="font-size:0.8rem;color:var(--text-tertiary);margin-top:0.25rem;">{{ ev.description[:200] }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <p style="margin-top:1rem;color:var(--text-secondary);font-size:0.85rem;">
+            To import these events, <a href="/" style="color:var(--accent-primary);">create a new calendar</a> first,
+            then add each event manually. Automatic import is coming soon!
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

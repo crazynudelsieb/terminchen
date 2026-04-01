@@ -1027,11 +1027,32 @@ main.container {
 
 .calendar-container { margin-top: 0.5rem; }
 
+.calendar-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1rem;
+    gap: 0.5rem;
+}
+
 .tz-indicator {
-    text-align: center;
     font-size: 0.8rem;
     color: var(--text-muted);
-    margin-top: 1rem;
+    margin: 0;
+}
+
+.btn-push-subscribe {
+    white-space: nowrap;
+    font-size: 0.8rem;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+.btn-push-subscribe:hover { opacity: 1; }
+.btn-push-subscribe.btn-push-active {
+    opacity: 1;
+    cursor: default;
+    pointer-events: none;
+    color: var(--accent-primary);
 }
 
 /* Agenda */
@@ -1122,6 +1143,9 @@ main.container {
     border-radius: 50%;
     width: 24px;
     height: 24px;
+    min-width: 24px;
+    aspect-ratio: 1;
+    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1586,7 +1610,7 @@ main.container {
         line-height: 1.3;
     }
 
-    /* ── Month grid: smaller cells on mobile ─────────── */
+    /* ── Month grid on mobile ────────────────────────── */
     .month-nav {
         flex-wrap: wrap;
         justify-content: center;
@@ -1600,8 +1624,8 @@ main.container {
     }
 
     .month-cell {
-        min-height: 44px;
-        padding: 0.15rem;
+        min-height: 56px;
+        padding: 0.2rem;
     }
 
     .month-cell-date {
@@ -1611,26 +1635,45 @@ main.container {
     .month-date-today {
         width: 20px;
         height: 20px;
+        min-width: 20px;
         font-size: 0.68rem;
     }
 
+    /* Show event titles (truncated) — not just dots */
     .month-cell-event {
-        font-size: 0;  /* hide text, show only dots */
+        font-size: 0.6rem;
+        gap: 2px;
+        padding: 0 2px;
+        line-height: 1.15;
     }
 
     .month-cell-event .event-dot {
-        width: 6px;
-        height: 6px;
+        width: 5px;
+        height: 5px;
     }
 
     .month-cell-events {
-        flex-direction: row;
-        flex-wrap: wrap;
-        gap: 3px;
+        flex-direction: column;
+        gap: 1px;
     }
 
-    .month-event-title { display: none; }
-    .month-cell-more { display: none; }
+    .month-event-title {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 100%;
+    }
+
+    /* Only show first 2 events in a cell, hide overflow */
+    .month-cell-event:nth-child(n+3) {
+        display: none;
+    }
+
+    .month-cell-more {
+        font-size: 0.55rem;
+        padding-left: 7px;
+    }
+
     .month-cell-weather { font-size: 0.5rem; }
 
     /* ── Week view ───────────────────────────────────── */
@@ -1705,7 +1748,12 @@ main.container {
         padding: 1.25rem 0 1rem;
     }
 
-    /* Timezone indicator */
+    /* Calendar footer + timezone */
+    .calendar-footer {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+    }
     .tz-indicator {
         font-size: 0.75rem;
     }
@@ -1739,6 +1787,14 @@ main.container {
 
     .month-cell-date { font-size: 0.65rem; }
     .month-cell-weather { display: none; }
+
+    /* Very small screens: fall back to dots only */
+    .month-cell-event { font-size: 0; gap: 0; padding: 0; }
+    .month-cell-event .event-dot { width: 5px; height: 5px; }
+    .month-cell-events { flex-direction: row; flex-wrap: wrap; gap: 2px; }
+    .month-event-title { display: none; }
+    .month-cell-more { display: none; }
+    .month-cell-event:nth-child(n+3) { display: inline-flex; }
 
     .view-switcher .btn,
     .admin-nav .btn {

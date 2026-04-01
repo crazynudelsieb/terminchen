@@ -80,6 +80,12 @@ class Config:
         app.config['SMTP_FROM_EMAIL'] = os.getenv('SMTP_FROM_EMAIL', os.getenv('SMTP_USER', ''))
         app.config['SMTP_FROM_NAME'] = os.getenv('SMTP_FROM_NAME', app.config['APP_NAME'])
 
+        # ── Web Push (VAPID) ──
+        app.config['VAPID_PRIVATE_KEY'] = os.getenv('VAPID_PRIVATE_KEY', '')
+        app.config['VAPID_PUBLIC_KEY'] = os.getenv('VAPID_PUBLIC_KEY', '')
+        app.config['VAPID_CLAIMS_EMAIL'] = os.getenv('VAPID_CLAIMS_EMAIL',
+                                                      app.config.get('LEGAL_EMAIL', ''))
+
         # ── Logging ──
         app.config['LOG_LEVEL'] = os.getenv('LOG_LEVEL', 'INFO').upper()
 

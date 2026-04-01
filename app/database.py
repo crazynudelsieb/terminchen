@@ -53,6 +53,18 @@ def _run_migrations():
         "ALTER TABLE calendar ADD COLUMN IF NOT EXISTS show_weather BOOLEAN NOT NULL DEFAULT TRUE",
         "ALTER TABLE calendar ADD COLUMN IF NOT EXISTS weather_lat DOUBLE PRECISION",
         "ALTER TABLE calendar ADD COLUMN IF NOT EXISTS weather_lon DOUBLE PRECISION",
+        # Push subscriptions table (Tier 4 PWA)
+        """CREATE TABLE IF NOT EXISTS push_subscription (
+            id UUID PRIMARY KEY,
+            calendar_id UUID NOT NULL REFERENCES calendar(id) ON DELETE CASCADE,
+            endpoint TEXT NOT NULL,
+            p256dh VARCHAR(256) NOT NULL,
+            auth VARCHAR(128) NOT NULL,
+            member_id UUID REFERENCES member(id) ON DELETE SET NULL,
+            created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+            CONSTRAINT uq_push_endpoint UNIQUE (endpoint)
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_push_calendar ON push_subscription(calendar_id)",
     ]
     for sql in migrations:
         try:

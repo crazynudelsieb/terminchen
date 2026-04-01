@@ -229,6 +229,34 @@ class EventTag(db.Model):
         return f'<EventTag {self.name} [{self.calendar_id}]>'
 
 
+class PushSubscription(db.Model):
+    """Web Push notification subscription.
+
+    Stores browser push endpoints per calendar so we can send event reminders.
+    """
+    __tablename__ = 'push_subscription'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    calendar_id = db.Column(UUID(as_uuid=True), db.ForeignKey('calendar.id', ondelete='CASCADE'), nullable=False)
+    endpoint = db.Column(db.Text, nullable=False)
+    p256dh = db.Column(db.String(256), nullable=False)
+    auth = db.Column(db.String(128), nullable=False)
+    member_id = db.Column(UUID(as_uuid=True), db.ForeignKey('member.id', ondelete='SET NULL'), nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=_utcnow)
+
+    # Relationships
+    calendar = db.relationship('Calendar')
+    member = db.relationship('Member')
+
+    __table_args__ = (
+        UniqueConstraint('endpoint', name='uq_push_endpoint'),
+        Index('idx_push_calendar', 'calendar_id'),
+    )
+
+    def __repr__(self):
+        return f'<PushSubscription {self.calendar_id}>'
+
+
 class AuditLog(db.Model):
     __tablename__ = 'audit_log'
 

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline — terminchen</title>
+    <meta name="theme-color" content="#16a34a">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter',system-ui,sans-serif;background:#111827;color:#e5e7eb;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1.5rem;text-align:center}
+        .offline-card{max-width:400px}
+        .offline-icon{font-size:4rem;margin-bottom:1rem}
+        h1{font-size:1.5rem;font-weight:700;color:#f9fafb;margin-bottom:0.5rem}
+        p{color:#9ca3af;line-height:1.6;margin-bottom:1.5rem}
+        .btn{display:inline-block;padding:0.6rem 1.5rem;background:#16a34a;color:#fff;border-radius:0.5rem;text-decoration:none;font-weight:600;font-size:0.9rem;transition:background 0.15s}
+        .btn:hover{background:#15803d}
+    </style>
+</head>
+<body>
+    <div class="offline-card">
+        <div class="offline-icon">📡</div>
+        <h1>You're offline</h1>
+        <p>terminchen needs an internet connection to load your calendars. Please check your connection and try again.</p>
+        <a href="/" class="btn" onclick="location.reload();return false;">Retry</a>
+    </div>
+</body>
+</html>

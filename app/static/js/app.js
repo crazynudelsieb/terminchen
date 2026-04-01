@@ -45,4 +45,98 @@
             e.stopPropagation();
         }
     });
+
+    // ── Push Notification opt-in ──────────────────────
+    // Buttons with class .btn-push-subscribe trigger subscription.
+    // The button should have data-share-token on it.
+    document.querySelectorAll('.btn-push-subscribe').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var shareToken = btn.dataset.shareToken;
+            if (!shareToken) return;
+            subscribeToPush(shareToken, btn);
+        });
+    });
+
+    function subscribeToPush(shareToken, btn) {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            alert('Push notifications are not supported in this browser.');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Subscribing…';
+
+        // 1) Get the VAPID public key from the server
+        fetch('/api/push/vapid-key')
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (!data.enabled) {
+                alert('Push notifications are not enabled on this server.');
+                btn.disabled = false;
+                btn.textContent = '🔔 Enable Notifications';
+                return;
+            }
+
+            var publicKey = urlBase64ToUint8Array(data.key);
+
+            return navigator.serviceWorker.ready.then(function (reg) {
+                return reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: publicKey,
+                });
+            });
+        })
+        .then(function (subscription) {
+            if (!subscription) return;
+
+            // 2) Send the subscription to the server
+            var sub = subscription.toJSON();
+            return window.apiFetch('/api/cal/' + shareToken + '/push/subscribe', {
+                method: 'POST',
+                body: JSON.stringify({
+                    endpoint: sub.endpoint,
+                    keys: sub.keys,
+                }),
+            });
+        })
+        .then(function (res) {
+            if (res && res.ok) {
+                btn.textContent = '🔔 Notifications On';
+                btn.classList.add('btn-push-active');
+            }
+        })
+        .catch(function (err) {
+            console.error('Push subscription failed:', err);
+            btn.disabled = false;
+            btn.textContent = '🔔 Enable Notifications';
+            if (err && err.name === 'NotAllowedError') {
+                alert('Notification permission was denied. Enable it in your browser settings.');
+            }
+        });
+    }
+
+    function urlBase64ToUint8Array(base64String) {
+        var padding = '='.repeat((4 - base64String.length % 4) % 4);
+        var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        var rawData = atob(base64);
+        var outputArray = new Uint8Array(rawData.length);
+        for (var i = 0; i < rawData.length; i++) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    }
+
+    // ── Periodic Background Sync registration ────────
+    // Register for periodic sync if supported (Chromium only).
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(function (reg) {
+            if ('periodicSync' in reg) {
+                reg.periodicSync.register('refresh-calendars', {
+                    minInterval: 12 * 60 * 60 * 1000, // 12 hours
+                }).catch(function () {
+                    // Permission denied or not supported — silently ignore
+                });
+            }
+        });
+    }
 })();
