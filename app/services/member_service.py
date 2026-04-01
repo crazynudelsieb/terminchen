@@ -110,8 +110,12 @@ def process_avatar_upload(member, file_storage, upload_dir):
     filename = f"{member.id}.webp"
     filepath = os.path.join(avatar_dir, filename)
 
-    img = Image.open(file_storage)
-    img = img.convert('RGB')
+    try:
+        img = Image.open(file_storage)
+        img = img.convert('RGB')
+    except Exception:
+        logger.warning("member.avatar_upload_failed", extra={"member_id": str(member.id)})
+        raise ValueError("Could not process image. Please try a different file.")
 
     # Strip EXIF data by creating a clean copy
     clean_img = Image.new(img.mode, img.size)

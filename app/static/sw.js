@@ -9,7 +9,7 @@
  *  - Periodic background sync: refresh calendar data (Chromium only)
  */
 
-var CACHE_NAME = 'terminchen-v6';
+var CACHE_NAME = 'terminchen-v7';
 var OFFLINE_URL = '/offline';
 var SYNC_TAG_RSVP = 'rsvp-sync';
 var DB_NAME = 'terminchen-sw';
@@ -137,7 +137,11 @@ self.addEventListener('fetch', function (e) {
     e.respondWith(
       fetch(e.request.clone()).catch(function () {
         // Network failed — queue the request for background sync
-        return e.request.clone().json().then(function (body) {
+        var ct = e.request.headers.get('content-type') || '';
+        var bodyPromise = ct.indexOf('application/json') !== -1
+          ? e.request.clone().json()
+          : Promise.resolve({});
+        return bodyPromise.then(function (body) {
           return addPendingRsvp({
             url: e.request.url,
             body: body,

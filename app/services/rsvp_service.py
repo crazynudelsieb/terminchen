@@ -7,6 +7,9 @@ from app.models import RSVP, Member
 
 logger = logging.getLogger(__name__)
 
+# Valid RSVP statuses
+VALID_RSVP_STATUSES = ('in', 'maybe', 'out')
+
 
 def set_rsvp(event_id, member_id, status):
     """Set or update an RSVP for a member on an event.
@@ -19,7 +22,7 @@ def set_rsvp(event_id, member_id, status):
     Returns:
         RSVP instance (created or updated)
     """
-    if status not in ('in', 'maybe', 'out'):
+    if status not in VALID_RSVP_STATUSES:
         raise ValueError(f"Invalid RSVP status: {status}")
 
     rsvp = RSVP.query.filter_by(event_id=event_id, member_id=member_id).first()
@@ -48,7 +51,7 @@ def bulk_set_rsvp(event, members, status):
     Uses a single transaction for efficiency instead of N individual commits.
     Returns the number of RSVPs created/updated.
     """
-    if status not in ('in', 'maybe', 'out'):
+    if status not in VALID_RSVP_STATUSES:
         raise ValueError(f"Invalid RSVP status: {status}")
 
     count = 0

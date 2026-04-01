@@ -20,6 +20,10 @@ Lightweight, account-free shared calendar for friend groups, clubs, and communit
 - **Token regeneration** — compromise recovery: regenerate all tokens at once
 - **Audit log** — track event and RSVP changes in the admin dashboard
 - **Bulk RSVP** — set all members to "in" with one click (admin only)
+- **PWA** — installable, offline-capable, background sync for RSVPs, push notifications
+- **ICS import** — import events from `.ics` files
+- **Event sharing** — standalone shareable event links + OS share target support
+- **Security** — CSRF protection, CSP headers, constant-time token comparison, safe URL handling
 
 ## Quick Start
 

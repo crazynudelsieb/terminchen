@@ -6,7 +6,7 @@ import os
 import secrets
 import uuid
 from datetime import date, datetime, timedelta, timezone
-from functools import wraps
+from urllib.parse import quote, urlencode
 from zoneinfo import ZoneInfo
 
 from flask import (
@@ -28,6 +28,53 @@ from app.utils import utc_to_local
 logger = logging.getLogger(__name__)
 
 main = Blueprint('main', __name__)
+
+# Import shared constant from service layer
+from app.services.rsvp_service import VALID_RSVP_STATUSES
+
+# ── Simple in-memory rate limiter for admin auth ─────────
+# Keyed by admin_token, stores list of recent failed attempt timestamps.
+_auth_failures = {}   # {admin_token: [timestamp, ...]}
+_AUTH_MAX_ATTEMPTS = 5     # max failures in window
+_AUTH_WINDOW_SECS = 300    # 5-minute window
+
+
+def _is_rate_limited(admin_token):
+    """Check if auth attempts for this token are rate-limited."""
+    now = datetime.now(timezone.utc).timestamp()
+    attempts = _auth_failures.get(admin_token, [])
+    # Prune old entries
+    attempts = [t for t in attempts if now - t < _AUTH_WINDOW_SECS]
+    _auth_failures[admin_token] = attempts
+    return len(attempts) >= _AUTH_MAX_ATTEMPTS
+
+
+def _record_auth_failure(admin_token):
+    """Record a failed auth attempt."""
+    now = datetime.now(timezone.utc).timestamp()
+    attempts = _auth_failures.get(admin_token, [])
+    attempts.append(now)
+    _auth_failures[admin_token] = attempts
+
+
+def _safe_return_to(return_to):
+    """Validate and encode return_to URL — allow only relative paths."""
+    if not return_to:
+        return ''
+    rt = return_to.strip()
+    # Only allow relative URLs starting with / (block protocol:// and //)
+    if not rt.startswith('/') or rt.startswith('//'):
+        return ''
+    return rt
+
+
+def _url_with_return_to(base_url, return_to):
+    """Append ?return_to=<encoded> to base_url if return_to is valid."""
+    rt = _safe_return_to(return_to)
+    if rt:
+        sep = '&' if '?' in base_url else '?'
+        return base_url + sep + urlencode({'return_to': rt})
+    return base_url
 
 
 # ── Helpers ──────────────────────────────────────────────
@@ -194,10 +241,13 @@ def _handle_upload_icon(cal, member_id, redirect_url):
         abort(404)
     form = MemberIconForm()
     if form.validate_on_submit():
-        member_service.process_avatar_upload(
-            member, form.icon.data, current_app.config['UPLOAD_DIR']
-        )
-        flash('Avatar uploaded.', 'success')
+        try:
+            member_service.process_avatar_upload(
+                member, form.icon.data, current_app.config['UPLOAD_DIR']
+            )
+            flash('Avatar uploaded.', 'success')
+        except ValueError as e:
+            flash(str(e), 'error')
     else:
         flash('Invalid image file.', 'error')
     return redirect(redirect_url)
@@ -209,7 +259,7 @@ def _handle_create_event(cal, success_redirect, template_extra=None):
     tags = tag_service.get_tags_for_calendar(cal)
 
     # Carry return_to through the form so we redirect back to the right view
-    return_to = request.args.get('return_to') or request.form.get('return_to') or ''
+    return_to = _safe_return_to(request.args.get('return_to') or request.form.get('return_to') or '')
 
     if request.method == 'GET' and request.args.get('date'):
         form.start_date.data = request.args['date']
@@ -244,9 +294,7 @@ def _handle_create_event(cal, success_redirect, template_extra=None):
         flash('Event created.', 'success')
         # Redirect to the new event so the user can RSVP immediately
         detail_url = url_for('main.event_detail', share_token=cal.share_token, event_id=event.id)
-        if return_to:
-            detail_url += '?return_to=' + return_to
-        return redirect(detail_url)
+        return redirect(_url_with_return_to(detail_url, return_to))
 
     ctx = dict(calendar=cal, form=form, editing=False, tags=tags, return_to=return_to)
     if template_extra:
@@ -265,7 +313,7 @@ def _handle_edit_event(cal, event_id, success_redirect, template_extra=None):
     selected_tag_ids = [str(t.id) for t in event.tags]
 
     # Carry return_to through the edit form
-    return_to = request.args.get('return_to') or request.form.get('return_to') or ''
+    return_to = _safe_return_to(request.args.get('return_to') or request.form.get('return_to') or '')
 
     if request.method == 'GET':
         local_start = utc_to_local(event.start_time, cal.timezone)
@@ -305,9 +353,7 @@ def _handle_edit_event(cal, event_id, success_redirect, template_extra=None):
         flash('Event updated.', 'success')
         # After edit, go back to event detail with return_to preserved
         detail_url = url_for('main.event_detail', share_token=cal.share_token, event_id=event.id)
-        if return_to:
-            detail_url += '?return_to=' + return_to
-        return redirect(detail_url)
+        return redirect(_url_with_return_to(detail_url, return_to))
 
     ctx = dict(calendar=cal, form=form, event=event, editing=True,
                tags=tags, selected_tag_ids=selected_tag_ids, return_to=return_to)
@@ -723,12 +769,19 @@ def admin_auth(share_token, admin_token):
         # No password needed
         return redirect(url_for('main.admin_dashboard', share_token=share_token, admin_token=admin_token))
 
+    if _is_rate_limited(admin_token):
+        flash('Too many failed attempts. Please try again later.', 'error')
+        return render_template('admin/auth.html', calendar=cal, form=AdminAuthForm()), 429
+
     form = AdminAuthForm()
     if form.validate_on_submit():
         if calendar_service.check_admin_password(cal, form.password.data):
+            # Clear failure history on success
+            _auth_failures.pop(admin_token, None)
             session[f'admin_auth_{admin_token}'] = True
             session.permanent = True
             return redirect(url_for('main.admin_dashboard', share_token=share_token, admin_token=admin_token))
+        _record_auth_failure(admin_token)
         flash('Incorrect password.', 'error')
 
     return render_template('admin/auth.html', calendar=cal, form=form)
@@ -1120,7 +1173,7 @@ def event_detail(share_token, event_id):
         my_rsvp = rsvp_service.get_member_rsvp(event.id, selected_member_id)
 
     # return_to: the calendar view the user came from (preserves view+params)
-    return_to = request.args.get('return_to', '')
+    return_to = _safe_return_to(request.args.get('return_to', ''))
 
     # Build edit URL if session has admin/manager tokens
     edit_url = None
@@ -1130,13 +1183,11 @@ def event_detail(share_token, event_id):
     if admin_tok:
         edit_url = url_for('main.edit_event', share_token=share,
                            admin_token=admin_tok, event_id=event.id)
-        if return_to:
-            edit_url += '?return_to=' + return_to
+        edit_url = _url_with_return_to(edit_url, return_to)
     elif mgr_tok:
         edit_url = url_for('main.manager_edit_event', share_token=share,
                            manager_token=mgr_tok, event_id=event.id)
-        if return_to:
-            edit_url += '?return_to=' + return_to
+        edit_url = _url_with_return_to(edit_url, return_to)
 
     # Check if user has admin/manager access (for bulk RSVP)
     has_elevated_access = bool(admin_tok or mgr_tok)
@@ -1182,7 +1233,7 @@ def api_set_rsvp(share_token, event_id):
     if not member_id_str or not status:
         return jsonify(error='member_id and status required'), 400
 
-    if status not in ('in', 'maybe', 'out'):
+    if status not in VALID_RSVP_STATUSES:
         return jsonify(error='Invalid status. Use: in, maybe, out'), 400
 
     member_id = _parse_uuid(member_id_str)
@@ -1251,7 +1302,7 @@ def api_bulk_rsvp_selected(share_token, event_id):
     if not member_ids or not status:
         return jsonify(error='member_ids (array) and status required'), 400
 
-    if status not in ('in', 'maybe', 'out'):
+    if status not in VALID_RSVP_STATUSES:
         return jsonify(error='Invalid status. Use: in, maybe, out'), 400
 
     count = 0

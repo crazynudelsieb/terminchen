@@ -10,9 +10,12 @@ from wtforms import (
     StringField,
     TextAreaField,
 )
-from wtforms.validators import DataRequired, Email, Length, Optional, URL, ValidationError
+from wtforms.validators import DataRequired, Email, Length, Optional, Regexp, URL, ValidationError
 
 from zoneinfo import available_timezones, ZoneInfo
+
+# Reusable hex color regex validator
+_hex_color = Regexp(r'^#[0-9A-Fa-f]{6}$', message='Must be a hex color like #1a2b3c')
 
 # ── Common timezone choices (grouped, sorted) ──
 _COMMON_TZ_PREFIXES = ['Europe/', 'America/', 'Asia/', 'Australia/', 'Pacific/', 'Africa/']
@@ -126,14 +129,14 @@ class EventForm(FlaskForm):
 class MemberForm(FlaskForm):
     """Form for adding/editing a member."""
     name = StringField('Name', validators=[DataRequired(), Length(max=100)])
-    color = StringField('Color', validators=[Optional(), Length(max=7)])
+    color = StringField('Color', validators=[Optional(), _hex_color])
     birthday = StringField('Birthday', validators=[Optional(), Length(max=10)])
 
 
 class TagForm(FlaskForm):
     """Form for creating/editing an event tag."""
     name = StringField('Name', validators=[DataRequired(), Length(max=50)])
-    color = StringField('Color', default='#16a34a', validators=[Optional(), Length(max=7)])
+    color = StringField('Color', default='#16a34a', validators=[Optional(), _hex_color])
 
 
 class MemberIconForm(FlaskForm):

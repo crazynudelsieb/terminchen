@@ -34,9 +34,12 @@ docker compose -f docker-compose.local.yml up --build
 
 - **Python**: Follow existing conventions in the codebase (no type hints, Flask patterns).
 - **Routes**: Admin/manager routes share logic via `_handle_*` helpers — don't duplicate.
-- **Templates**: Jinja2 with `_` prefix for partials/components.
+- **Templates**: Jinja2 with `_` prefix for partials/components. Error pages use `errors/error.html` with `code`/`message` params.
 - **CSS/JS**: Vanilla only — no frameworks or build tools.
 - **Imports**: Keep at module level, no inline imports.
+- **Forms**: Use WTForms validators (e.g. `_hex_color` for color fields). Add validation for new fields.
+- **URL params**: Use `_safe_return_to()` and `_url_with_return_to()` for redirect URLs — never raw concatenation.
+- **Constants**: Shared constants (like `VALID_RSVP_STATUSES`) live in their service module and are imported where needed.
 - **Commits**: Use prefixes like `Add:`, `Fix:`, `Update:`, `Remove:`.
 
 ## What to Contribute

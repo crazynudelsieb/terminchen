@@ -65,6 +65,8 @@ def _run_migrations():
             CONSTRAINT uq_push_endpoint UNIQUE (endpoint)
         )""",
         "CREATE INDEX IF NOT EXISTS idx_push_calendar ON push_subscription(calendar_id)",
+        # Performance: reverse lookup on event_tag_assignment (find events by tag)
+        "CREATE INDEX IF NOT EXISTS idx_event_tag_tag_id ON event_tag_assignment(tag_id)",
     ]
     for sql in migrations:
         try:

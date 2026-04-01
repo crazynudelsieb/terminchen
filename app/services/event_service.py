@@ -222,29 +222,23 @@ def get_upcoming_events(calendar, limit=20):
     ).order_by(Event.start_time).limit(limit).all()
 
 
-def get_events_for_month(calendar, year, month):
-    """Get events for a specific month and group by local date.
+def _query_and_group_events(calendar, window_start, window_end):
+    """Shared: query events overlapping a date window and group by local date.
+
+    Args:
+        calendar: Calendar model instance
+        window_start: Naive datetime (local TZ) — start of window (inclusive)
+        window_end: Naive datetime (local TZ) — end of window (exclusive)
 
     Returns:
         dict mapping date strings (YYYY-MM-DD) to list of Event instances
     """
-    tz = ZoneInfo(calendar.timezone)
+    start_utc = local_to_utc(window_start, calendar.timezone)
+    end_utc = local_to_utc(window_end, calendar.timezone)
 
-    # First and last day of month in local timezone → convert to UTC for query
-    first_day = datetime(year, month, 1)
-    _, last_day_num = cal_mod.monthrange(year, month)
-    # Start of next month
-    if month == 12:
-        next_month_start = datetime(year + 1, 1, 1)
-    else:
-        next_month_start = datetime(year, month + 1, 1)
-
-    start_utc = local_to_utc(first_day, calendar.timezone)
-    end_utc = local_to_utc(next_month_start, calendar.timezone)
-
-    # Include events that overlap the visible month window.
+    # Include events that overlap the visible window.
     # Timed events use start_time in-range; all-day events may begin earlier
-    # but still overlap if their end_time reaches into this month.
+    # but still overlap if their end_time reaches into the window.
     events = Event.query.filter(
         Event.calendar_id == calendar.id,
         Event.start_time < end_utc,
@@ -259,8 +253,8 @@ def get_events_for_month(calendar, year, month):
     ).order_by(Event.start_time).all()
 
     # Group by local date; expand multi-day all-day events across each day
-    window_start_date = first_day.date()
-    window_end_exclusive = next_month_start.date()
+    window_start_date = window_start.date()
+    window_end_exclusive = window_end.date()
     grouped = defaultdict(list)
     for event in events:
         local_start = utc_to_local(event.start_time, calendar.timezone)
@@ -278,6 +272,21 @@ def get_events_for_month(calendar, year, month):
         grouped[date_key].append(event)
 
     return dict(grouped)
+
+
+def get_events_for_month(calendar, year, month):
+    """Get events for a specific month and group by local date.
+
+    Returns:
+        dict mapping date strings (YYYY-MM-DD) to list of Event instances
+    """
+    first_day = datetime(year, month, 1)
+    if month == 12:
+        next_month_start = datetime(year + 1, 1, 1)
+    else:
+        next_month_start = datetime(year, month + 1, 1)
+
+    return _query_and_group_events(calendar, first_day, next_month_start)
 
 
 def get_events_for_week(calendar, year, month, day):
@@ -289,39 +298,4 @@ def get_events_for_week(calendar, year, month, day):
     week_start = datetime(year, month, day)
     week_end = week_start + timedelta(days=7)
 
-    start_utc = local_to_utc(week_start, calendar.timezone)
-    end_utc = local_to_utc(week_end, calendar.timezone)
-
-    # Include events that overlap the visible week window.
-    events = Event.query.filter(
-        Event.calendar_id == calendar.id,
-        Event.start_time < end_utc,
-        or_(
-            and_(Event.all_day.is_(False), Event.start_time >= start_utc),
-            and_(Event.all_day.is_(True), Event.end_time.is_(None), Event.start_time >= start_utc),
-            and_(Event.all_day.is_(True), Event.end_time.is_not(None), Event.end_time >= start_utc),
-        ),
-    ).options(
-        selectinload(Event.rsvps),
-        selectinload(Event.tags),
-    ).order_by(Event.start_time).all()
-
-    window_start_date = week_start.date()
-    window_end_exclusive = week_end.date()
-    grouped = defaultdict(list)
-    for event in events:
-        local_start = utc_to_local(event.start_time, calendar.timezone)
-
-        if event.all_day and event.end_time:
-            local_end = utc_to_local(event.end_time, calendar.timezone)
-            current_date = max(local_start.date(), window_start_date)
-            end_date = min(local_end.date(), window_end_exclusive - timedelta(days=1))
-            while current_date <= end_date:
-                grouped[current_date.strftime('%Y-%m-%d')].append(event)
-                current_date += timedelta(days=1)
-            continue
-
-        date_key = local_start.strftime('%Y-%m-%d')
-        grouped[date_key].append(event)
-
-    return dict(grouped)
+    return _query_and_group_events(calendar, week_start, week_end)
