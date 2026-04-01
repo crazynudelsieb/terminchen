@@ -223,6 +223,18 @@ def privacy():
                            legal_email=cfg.get('LEGAL_EMAIL', ''))
 
 
+@main.route('/sw.js')
+def service_worker():
+    """Serve service worker at root scope so it controls all app pages."""
+    response = current_app.make_response(
+        current_app.send_static_file('sw.js')
+    )
+    response.headers['Content-Type'] = 'application/javascript'
+    response.headers['Service-Worker-Allowed'] = '/'
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
 @main.route('/robots.txt')
 def robots_txt():
     """Serve robots.txt for search engine crawlers."""

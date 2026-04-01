@@ -26,6 +26,7 @@ def init_security_headers(app):
                 "img-src 'self' data: blob: https://api.dicebear.com https://cdn.simpleicons.org; "
                 "font-src 'self' https://fonts.gstatic.com; "
                 "connect-src 'self' https://api.open-meteo.com https://cloudflareinsights.com; "
+                "worker-src 'self'; "
                 f"frame-ancestors 'self' {' '.join(embed_origins)}; "
                 "form-action 'self';"
             )
@@ -38,6 +39,7 @@ def init_security_headers(app):
                 "img-src 'self' data: blob: https://api.dicebear.com https://cdn.simpleicons.org; "
                 "font-src 'self' https://fonts.gstatic.com; "
                 "connect-src 'self' https://api.open-meteo.com https://cloudflareinsights.com; "
+                "worker-src 'self'; "
                 "frame-ancestors 'self'; "
                 "form-action 'self';"
             )

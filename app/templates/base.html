@@ -78,7 +78,7 @@
     </footer>
 
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
-    <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/static/sw.js');}</script>
+    <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js',{scope:'/'});}</script>
     {% block scripts %}{% endblock %}
     {% if cf_beacon_token %}
     <!-- Cloudflare Web Analytics -->
