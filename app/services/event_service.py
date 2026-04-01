@@ -7,6 +7,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import selectinload
 
 from app.database import db
@@ -241,13 +242,39 @@ def get_events_for_month(calendar, year, month):
     start_utc = local_to_utc(first_day, calendar.timezone)
     end_utc = local_to_utc(next_month_start, calendar.timezone)
 
-    events = get_events_for_calendar(calendar, start=start_utc, end=end_utc)
+    # Include events that overlap the visible month window.
+    # Timed events use start_time in-range; all-day events may begin earlier
+    # but still overlap if their end_time reaches into this month.
+    events = Event.query.filter(
+        Event.calendar_id == calendar.id,
+        Event.start_time < end_utc,
+        or_(
+            and_(Event.all_day.is_(False), Event.start_time >= start_utc),
+            and_(Event.all_day.is_(True), Event.end_time.is_(None), Event.start_time >= start_utc),
+            and_(Event.all_day.is_(True), Event.end_time.is_not(None), Event.end_time >= start_utc),
+        ),
+    ).options(
+        selectinload(Event.rsvps),
+        selectinload(Event.tags),
+    ).order_by(Event.start_time).all()
 
-    # Group by local date
+    # Group by local date; expand multi-day all-day events across each day
+    window_start_date = first_day.date()
+    window_end_exclusive = next_month_start.date()
     grouped = defaultdict(list)
     for event in events:
-        local_dt = utc_to_local(event.start_time, calendar.timezone)
-        date_key = local_dt.strftime('%Y-%m-%d')
+        local_start = utc_to_local(event.start_time, calendar.timezone)
+
+        if event.all_day and event.end_time:
+            local_end = utc_to_local(event.end_time, calendar.timezone)
+            current_date = max(local_start.date(), window_start_date)
+            end_date = min(local_end.date(), window_end_exclusive - timedelta(days=1))
+            while current_date <= end_date:
+                grouped[current_date.strftime('%Y-%m-%d')].append(event)
+                current_date += timedelta(days=1)
+            continue
+
+        date_key = local_start.strftime('%Y-%m-%d')
         grouped[date_key].append(event)
 
     return dict(grouped)
@@ -265,12 +292,36 @@ def get_events_for_week(calendar, year, month, day):
     start_utc = local_to_utc(week_start, calendar.timezone)
     end_utc = local_to_utc(week_end, calendar.timezone)
 
-    events = get_events_for_calendar(calendar, start=start_utc, end=end_utc)
+    # Include events that overlap the visible week window.
+    events = Event.query.filter(
+        Event.calendar_id == calendar.id,
+        Event.start_time < end_utc,
+        or_(
+            and_(Event.all_day.is_(False), Event.start_time >= start_utc),
+            and_(Event.all_day.is_(True), Event.end_time.is_(None), Event.start_time >= start_utc),
+            and_(Event.all_day.is_(True), Event.end_time.is_not(None), Event.end_time >= start_utc),
+        ),
+    ).options(
+        selectinload(Event.rsvps),
+        selectinload(Event.tags),
+    ).order_by(Event.start_time).all()
 
+    window_start_date = week_start.date()
+    window_end_exclusive = week_end.date()
     grouped = defaultdict(list)
     for event in events:
-        local_dt = utc_to_local(event.start_time, calendar.timezone)
-        date_key = local_dt.strftime('%Y-%m-%d')
+        local_start = utc_to_local(event.start_time, calendar.timezone)
+
+        if event.all_day and event.end_time:
+            local_end = utc_to_local(event.end_time, calendar.timezone)
+            current_date = max(local_start.date(), window_start_date)
+            end_date = min(local_end.date(), window_end_exclusive - timedelta(days=1))
+            while current_date <= end_date:
+                grouped[current_date.strftime('%Y-%m-%d')].append(event)
+                current_date += timedelta(days=1)
+            continue
+
+        date_key = local_start.strftime('%Y-%m-%d')
         grouped[date_key].append(event)
 
     return dict(grouped)
