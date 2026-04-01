@@ -150,6 +150,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function renderList(items) {
         items.forEach(function(h) {
+            var row = document.createElement('div');
+            row.className = 'recent-cal-row';
+
             var a = document.createElement('a');
             // Always link to the calendar view
             a.href = '/cal/' + h.token;
@@ -167,7 +170,40 @@ document.addEventListener('DOMContentLoaded', function() {
                 badge.textContent = 'Admin';
                 a.appendChild(badge);
             }
-            list.appendChild(a);
+
+            if (h.manager_valid && h.manager_token) {
+                var managerBadge = document.createElement('span');
+                managerBadge.className = 'recent-cal-badge badge-manager';
+                managerBadge.textContent = 'Manager';
+                a.appendChild(managerBadge);
+            }
+
+            row.appendChild(a);
+
+            var actions = document.createElement('div');
+            actions.className = 'recent-cal-actions';
+
+            if (h.admin_valid && h.admin_token) {
+                var adminBtn = document.createElement('a');
+                adminBtn.href = '/cal/' + h.token + '/admin/' + h.admin_token;
+                adminBtn.className = 'btn btn-sm btn-admin';
+                adminBtn.textContent = 'Admin';
+                actions.appendChild(adminBtn);
+            }
+
+            if (h.manager_valid && h.manager_token) {
+                var managerBtn = document.createElement('a');
+                managerBtn.href = '/cal/' + h.token + '/manage/' + h.manager_token + '/dashboard';
+                managerBtn.className = 'btn btn-sm btn-admin';
+                managerBtn.textContent = 'Manager';
+                actions.appendChild(managerBtn);
+            }
+
+            if (actions.children.length) {
+                row.appendChild(actions);
+            }
+
+            list.appendChild(row);
         });
         wrap.style.display = '';
         // Hide the create form when recent calendars are shown
@@ -176,15 +212,17 @@ document.addEventListener('DOMContentLoaded', function() {
         if (headerBtn) headerBtn.style.display = '';
     }
 
-    // Validate against server: remove deleted calendars, verify admin tokens
+    // Validate against server: remove deleted calendars, verify admin/manager tokens
     var tokens = history.map(function(h) { return h.token; });
     var adminTokens = {};
+    var managerTokens = {};
     history.forEach(function(h) {
         if (h.admin_token) adminTokens[h.token] = h.admin_token;
+        if (h.manager_token) managerTokens[h.token] = h.manager_token;
     });
     window.apiFetch('/api/calendars/validate', {
         method: 'POST',
-        body: JSON.stringify({tokens: tokens, admin_tokens: adminTokens})
+        body: JSON.stringify({tokens: tokens, admin_tokens: adminTokens, manager_tokens: managerTokens})
     }).then(function(r) { return r.json(); })
     .then(function(valid) {
         var updated = [];
@@ -192,9 +230,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (valid[h.token]) {
                 h.name = valid[h.token].name;
                 h.color = valid[h.token].color;
-                // Mark admin access as server-validated
+                // Mark admin/manager access as server-validated
                 h.admin_valid = !!valid[h.token].admin_valid;
+                h.manager_valid = !!valid[h.token].manager_valid;
                 if (!h.admin_valid) delete h.admin_token;
+                if (!h.manager_valid) delete h.manager_token;
                 updated.push(h);
             }
         });

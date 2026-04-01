@@ -68,18 +68,23 @@
     var token = '{{ calendar.share_token }}';
     var name = {{ calendar.name | tojson }};
     var adminToken = '{{ session.get("admin_token_" + calendar.share_token, "") }}';
+    var managerToken = '{{ session.get("manager_token_" + calendar.share_token, "") }}';
     try {
         var history = JSON.parse(localStorage.getItem(KEY) || '[]');
-        // Preserve existing admin_token if we don't have one now
+        // Preserve existing admin/manager token if we don't have one now
         var existing = history.find(function(h) { return h.token === token; });
         if (!adminToken && existing && existing.admin_token) {
             adminToken = existing.admin_token;
+        }
+        if (!managerToken && existing && existing.manager_token) {
+            managerToken = existing.manager_token;
         }
         // Remove existing entry for this token
         history = history.filter(function(h) { return h.token !== token; });
         // Add to front
         var entry = {token: token, name: name, ts: Date.now()};
         if (adminToken) entry.admin_token = adminToken;
+        if (managerToken) entry.manager_token = managerToken;
         history.unshift(entry);
         // Keep last 10
         if (history.length > 10) history = history.slice(0, 10);

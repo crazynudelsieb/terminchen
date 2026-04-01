@@ -1012,8 +1012,18 @@ def bulk_rsvp(share_token, admin_token, event_id):
 
 
 @main.route('/cal/<share_token>/manage/<manager_token>')
+def manager_entry(share_token, manager_token):
+    """Manager link entrypoint: store manager session and open calendar view."""
+    _require_manager(share_token, manager_token)
+
+    # Store manager token in session so calendar views can expose manager actions.
+    session[f'manager_token_{share_token}'] = manager_token
+    return redirect(url_for('main.calendar_view', share_token=share_token))
+
+
+@main.route('/cal/<share_token>/manage/<manager_token>/dashboard')
 def manager_dashboard(share_token, manager_token):
-    """Manager dashboard — event CRUD without member/calendar management."""
+    """Manager dashboard — event/member management with no destructive member actions."""
     cal = _require_manager(share_token, manager_token)
 
     # Store manager token in session so calendar views can offer "click to create"
@@ -1428,12 +1438,13 @@ def api_calendar_info(share_token):
 def api_validate_calendars():
     """Validate a list of share tokens, return which still exist with current names.
 
-    Also accepts admin_tokens dict {share_token: admin_token} to verify admin access.
-    Returns admin_valid=true for entries whose admin_token still matches.
+    Also accepts admin_tokens/manager_tokens dicts to verify elevated access.
+    Returns admin_valid/manager_valid=true for matching tokens.
     """
     data = request.get_json(silent=True) or {}
     tokens = data.get('tokens', [])
     admin_tokens = data.get('admin_tokens', {})  # {share_token: admin_token}
+    manager_tokens = data.get('manager_tokens', {})  # {share_token: manager_token}
     if not isinstance(tokens, list) or len(tokens) > 50:
         return jsonify(error='Invalid request'), 400
     result = {}
@@ -1445,6 +1456,9 @@ def api_validate_calendars():
             claimed_admin = admin_tokens.get(token)
             if claimed_admin and secrets.compare_digest(cal.admin_token, claimed_admin):
                 entry['admin_valid'] = True
+            claimed_manager = manager_tokens.get(token)
+            if claimed_manager and secrets.compare_digest(cal.manager_token, claimed_manager):
+                entry['manager_valid'] = True
             result[token] = entry
     return jsonify(result)
 

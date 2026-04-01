@@ -36,7 +36,7 @@
 
     {% if show_admin %}
     <div class="share-link-row">
-        <label>Manager link <span class="text-muted">(event management, no member/calendar changes)</span>:</label>
+        <label>Manager link <span class="text-muted">(event + member management, no delete/deactivate)</span>:</label>
         <div class="share-input-group">
             <input type="text" readonly class="form-input"
                    value="{{ base_url }}/cal/{{ calendar.share_token }}/manage/{{ calendar.manager_token }}"
