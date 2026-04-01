@@ -136,7 +136,7 @@ def process_avatar_upload(member, file_storage, upload_dir):
     db.session.commit()
 
     logger.info("member.avatar_uploaded", extra={
-        "member_id": str(member.id), "filename": filename
+        "member_id": str(member.id), "avatar_filename": filename
     })
     return filename
 
