@@ -528,7 +528,8 @@ def admin_dashboard(share_token, admin_token):
     audit_logs = audit_service.get_recent_logs(cal, limit=15)
     return render_template('admin/dashboard.html',
                            calendar=cal, events=events, members=members,
-                           audit_logs=audit_logs, form=form)
+                           audit_logs=audit_logs, form=form,
+                           access_mode='admin', access_token=admin_token)
 
 
 @main.route('/cal/<share_token>/admin/<admin_token>/auth', methods=['GET', 'POST'])
@@ -1023,17 +1024,19 @@ def manager_entry(share_token, manager_token):
 
 @main.route('/cal/<share_token>/manage/<manager_token>/dashboard')
 def manager_dashboard(share_token, manager_token):
-    """Manager dashboard — event/member management with no destructive member actions."""
+    """Manager dashboard — same admin UI with manager-safe capabilities."""
     cal = _require_manager(share_token, manager_token)
 
     # Store manager token in session so calendar views can offer "click to create"
     session[f'manager_token_{share_token}'] = manager_token
 
     events = event_service.get_upcoming_events(cal, limit=50)
-    members = member_service.get_active_members(cal)
-    return render_template('admin/manager.html',
+    members = member_service.get_all_members(cal)
+    audit_logs = audit_service.get_recent_logs(cal, limit=15)
+    return render_template('admin/dashboard.html',
                            calendar=cal, events=events, members=members,
-                           manager_token=manager_token)
+                           audit_logs=audit_logs, form=None,
+                           access_mode='manager', access_token=manager_token)
 
 
 @main.route('/cal/<share_token>/manage/<manager_token>/event/new', methods=['GET', 'POST'])

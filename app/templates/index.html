@@ -150,6 +150,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function renderList(items) {
         items.forEach(function(h) {
+            var hasAdminAccess = (!!h.admin_token) && (h.admin_valid || typeof h.admin_valid === 'undefined');
+            var hasManagerAccess = (!!h.manager_token) && (h.manager_valid || typeof h.manager_valid === 'undefined');
+
             var row = document.createElement('div');
             row.className = 'recent-cal-row';
 
@@ -164,18 +167,25 @@ document.addEventListener('DOMContentLoaded', function() {
             a.innerHTML = dot;
             a.appendChild(span);
             // Show admin badge if admin access is confirmed
-            if (h.admin_valid && h.admin_token) {
+            if (hasAdminAccess) {
                 var badge = document.createElement('span');
                 badge.className = 'recent-cal-badge badge-admin';
                 badge.textContent = 'Admin';
                 a.appendChild(badge);
             }
 
-            if (h.manager_valid && h.manager_token) {
+            if (hasManagerAccess) {
                 var managerBadge = document.createElement('span');
                 managerBadge.className = 'recent-cal-badge badge-manager';
                 managerBadge.textContent = 'Manager';
                 a.appendChild(managerBadge);
+            }
+
+            if (!hasAdminAccess && !hasManagerAccess) {
+                var readonlyBadge = document.createElement('span');
+                readonlyBadge.className = 'recent-cal-badge badge-readonly';
+                readonlyBadge.textContent = 'Read-only';
+                a.appendChild(readonlyBadge);
             }
 
             row.appendChild(a);
@@ -183,19 +193,17 @@ document.addEventListener('DOMContentLoaded', function() {
             var actions = document.createElement('div');
             actions.className = 'recent-cal-actions';
 
-            if (h.admin_valid && h.admin_token) {
+            if (hasAdminAccess) {
                 var adminBtn = document.createElement('a');
-                adminBtn.href = '/cal/' + h.token + '/admin/' + h.admin_token;
+                adminBtn.href = '/cal/' + h.token + '/admin/' + h.admin_token + '?dashboard=1';
                 adminBtn.className = 'btn btn-sm btn-admin';
                 adminBtn.textContent = 'Admin';
                 actions.appendChild(adminBtn);
-            }
-
-            if (h.manager_valid && h.manager_token) {
+            } else if (hasManagerAccess) {
                 var managerBtn = document.createElement('a');
                 managerBtn.href = '/cal/' + h.token + '/manage/' + h.manager_token + '/dashboard';
                 managerBtn.className = 'btn btn-sm btn-admin';
-                managerBtn.textContent = 'Manager';
+                managerBtn.textContent = 'Admin';
                 actions.appendChild(managerBtn);
             }
 

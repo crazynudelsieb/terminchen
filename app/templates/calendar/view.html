@@ -19,9 +19,15 @@
         <a href="{{ url_for('main.calendar_agenda', share_token=calendar.share_token) }}"
            class="btn btn-sm {% if view == 'agenda' %}active{% endif %}">Agenda</a>
         {% set admin_tok = session.get('admin_token_' + calendar.share_token) %}
-        {% if admin_tok %}
+          {% set manager_tok = session.get('manager_token_' + calendar.share_token) %}
+          {% if admin_tok or manager_tok %}
+          {% if admin_tok %}
         <a href="{{ url_for('main.admin_dashboard', share_token=calendar.share_token, admin_token=admin_tok, dashboard=1) }}"
            class="btn btn-sm btn-admin">Admin</a>
+          {% else %}
+          <a href="{{ url_for('main.manager_dashboard', share_token=calendar.share_token, manager_token=manager_tok) }}"
+              class="btn btn-sm btn-admin">Admin</a>
+          {% endif %}
         {% endif %}
     </div>
 </nav>

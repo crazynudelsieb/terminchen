@@ -3,16 +3,25 @@
 {% from 'components/_event_card.html' import event_card %}
 {% from 'components/_member_avatar.html' import avatar %}
 
-{% block title %}Admin — {{ calendar.name }}{% endblock %}
+{% set is_admin = access_mode == 'admin' %}
+{% block title %}{% if is_admin %}Admin{% else %}Manage{% endif %} — {{ calendar.name }}{% endblock %}
 
 {% block header_nav %}
 <nav class="cal-nav">
     <span class="cal-name">{{ calendar.name }}</span>
     <div class="admin-nav">
         <a href="{{ url_for('main.calendar_view', share_token=calendar.share_token) }}" class="btn btn-sm">View Calendar</a>
+        {% if is_admin %}
         <a href="#settings" class="btn btn-sm" onclick="var b=document.getElementById('settings-body');if(b&amp;&amp;b.style.display==='none'){b.style.display='';var i=document.querySelector('#settings .collapse-indicator');if(i)i.textContent='▾';}">Admin</a>
-        <a href="{{ url_for('main.members_list', share_token=calendar.share_token, admin_token=calendar.admin_token) }}" class="btn btn-sm">Members</a>
-        <a href="{{ url_for('main.tags_list', share_token=calendar.share_token, admin_token=calendar.admin_token) }}" class="btn btn-sm">Tags</a>
+        {% else %}
+        <a href="#events" class="btn btn-sm" onclick="var b=document.getElementById('events-body');if(b&amp;&amp;b.style.display==='none'){b.style.display='';var i=document.querySelector('[data-toggle=\'events-body\'] .collapse-indicator');if(i)i.textContent='▾';}">Admin</a>
+        {% endif %}
+        {% if is_admin %}
+        <a href="{{ url_for('main.members_list', share_token=calendar.share_token, admin_token=access_token) }}" class="btn btn-sm">Members</a>
+        <a href="{{ url_for('main.tags_list', share_token=calendar.share_token, admin_token=access_token) }}" class="btn btn-sm">Tags</a>
+        {% else %}
+        <a href="{{ url_for('main.manager_members_list', share_token=calendar.share_token, manager_token=access_token) }}" class="btn btn-sm">Members</a>
+        {% endif %}
     </div>
 </nav>
 {% endblock %}
@@ -27,7 +36,7 @@
             🔗 Share Links <span class="collapse-indicator">▾</span>
         </h2>
         <div id="share-links-body" class="collapsible-body">
-            {{ share_links(calendar, show_admin=True) }}
+            {{ share_links(calendar, show_admin=is_admin) }}
         </div>
     </div>
 
@@ -44,17 +53,25 @@
                     </span>
                 {% endfor %}
             </div>
-            <a href="{{ url_for('main.members_list', share_token=calendar.share_token, admin_token=calendar.admin_token) }}" class="btn btn-sm btn-secondary" style="margin-top: 0.5rem;">Manage Members</a>
+            {% if is_admin %}
+            <a href="{{ url_for('main.members_list', share_token=calendar.share_token, admin_token=access_token) }}" class="btn btn-sm btn-secondary" style="margin-top: 0.5rem;">Manage Members</a>
+            {% else %}
+            <a href="{{ url_for('main.manager_members_list', share_token=calendar.share_token, manager_token=access_token) }}" class="btn btn-sm btn-secondary" style="margin-top: 0.5rem;">Manage Members</a>
+            {% endif %}
         </div>
     </div>
 
     {# Quick actions #}
-    <div class="card">
+    <div class="card" id="events">
         <h2 class="collapsible-header" data-toggle="events-body" style="cursor:pointer;">
             📅 Events <span class="collapse-indicator">▾</span>
         </h2>
         <div id="events-body" class="collapsible-body">
-            <a href="{{ url_for('main.create_event', share_token=calendar.share_token, admin_token=calendar.admin_token) }}" class="btn btn-primary">+ New Event</a>
+            {% if is_admin %}
+            <a href="{{ url_for('main.create_event', share_token=calendar.share_token, admin_token=access_token) }}" class="btn btn-primary">+ New Event</a>
+            {% else %}
+            <a href="{{ url_for('main.manager_create_event', share_token=calendar.share_token, manager_token=access_token) }}" class="btn btn-primary">+ New Event</a>
+            {% endif %}
 
             <div class="event-list">
                 {% if events %}
@@ -62,25 +79,44 @@
                     <div class="admin-event-row">
                         {{ event_card(event, calendar, show_rsvp=True) }}
                         <div class="admin-event-actions">
-                            <a href="{{ url_for('main.edit_event', share_token=calendar.share_token, admin_token=calendar.admin_token, event_id=event.id) }}"
-                               class="btn btn-sm btn-secondary">Edit</a>
-                            <form method="POST" action="{{ url_for('main.bulk_rsvp', share_token=calendar.share_token, admin_token=calendar.admin_token, event_id=event.id) }}"
+                                                        {% if is_admin %}
+                                                        <a href="{{ url_for('main.edit_event', share_token=calendar.share_token, admin_token=access_token, event_id=event.id) }}"
+                                                             class="btn btn-sm btn-secondary">Edit</a>
+                                                        {% else %}
+                                                        <a href="{{ url_for('main.manager_edit_event', share_token=calendar.share_token, manager_token=access_token, event_id=event.id) }}"
+                                                             class="btn btn-sm btn-secondary">Edit</a>
+                                                        {% endif %}
+                                                        {% if is_admin %}
+                                <form method="POST" action="{{ url_for('main.bulk_rsvp', share_token=calendar.share_token, admin_token=access_token, event_id=event.id) }}"
                                   style="display:inline;">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <input type="hidden" name="status" value="in">
                                 <button type="submit" class="btn btn-sm btn-secondary" title="Set all members to In">Everyone In</button>
                             </form>
-                            <form method="POST" action="{{ url_for('main.duplicate_event_admin', share_token=calendar.share_token, admin_token=calendar.admin_token, event_id=event.id) }}"
+                                                        <form method="POST" action="{{ url_for('main.duplicate_event_admin', share_token=calendar.share_token, admin_token=access_token, event_id=event.id) }}"
                                   style="display:inline;">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-sm btn-secondary" title="Duplicate">Copy</button>
                             </form>
-                            <form method="POST" action="{{ url_for('main.delete_event', share_token=calendar.share_token, admin_token=calendar.admin_token, event_id=event.id) }}"
+                                                        <form method="POST" action="{{ url_for('main.delete_event', share_token=calendar.share_token, admin_token=access_token, event_id=event.id) }}"
                                   style="display:inline;">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-sm btn-danger btn-confirm-delete"
                                         data-confirm="Delete &laquo;{{ event.title }}&raquo;? This cannot be undone.">Delete</button>
                             </form>
+                                                        {% else %}
+                                                        <form method="POST" action="{{ url_for('main.duplicate_event_manager', share_token=calendar.share_token, manager_token=access_token, event_id=event.id) }}"
+                                                                    style="display:inline;">
+                                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                                <button type="submit" class="btn btn-sm btn-secondary" title="Duplicate">Copy</button>
+                                                        </form>
+                                                        <form method="POST" action="{{ url_for('main.manager_delete_event', share_token=calendar.share_token, manager_token=access_token, event_id=event.id) }}"
+                                                                    style="display:inline;">
+                                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                                <button type="submit" class="btn btn-sm btn-danger btn-confirm-delete"
+                                                                                data-confirm="Delete &laquo;{{ event.title }}&raquo;? This cannot be undone.">Delete</button>
+                                                        </form>
+                                                        {% endif %}
                         </div>
                     </div>
                     {% endfor %}
@@ -88,7 +124,11 @@
                     <div class="empty-state">
                         <p style="font-size: 2rem; margin-bottom: 0.5rem;">📅</p>
                         <p>No upcoming events yet.</p>
-                        <a href="{{ url_for('main.create_event', share_token=calendar.share_token, admin_token=calendar.admin_token) }}" class="btn btn-primary" style="margin-top: 0.75rem;">+ Create your first event</a>
+                        {% if is_admin %}
+                        <a href="{{ url_for('main.create_event', share_token=calendar.share_token, admin_token=access_token) }}" class="btn btn-primary" style="margin-top: 0.75rem;">+ Create your first event</a>
+                        {% else %}
+                        <a href="{{ url_for('main.manager_create_event', share_token=calendar.share_token, manager_token=access_token) }}" class="btn btn-primary" style="margin-top: 0.75rem;">+ Create your first event</a>
+                        {% endif %}
                     </div>
                 {% endif %}
             </div>
@@ -96,12 +136,13 @@
     </div>
 
     {# Calendar Settings (collapsible) #}
+    {% if is_admin %}
     <div class="card" id="settings">
         <h2 class="collapsible-header" data-toggle="settings-body" style="cursor:pointer;">
             ⚙️ Settings <span class="collapse-indicator">▾</span>
         </h2>
         <div id="settings-body" class="collapsible-body">
-            <form method="POST" action="{{ url_for('main.admin_dashboard', share_token=calendar.share_token, admin_token=calendar.admin_token) }}">
+            <form method="POST" action="{{ url_for('main.admin_dashboard', share_token=calendar.share_token, admin_token=access_token) }}">
                 {{ form.hidden_tag() }}
 
                 <div class="form-group">
@@ -200,6 +241,7 @@
             </form>
         </div>
     </div>
+    {% endif %}
 
     {# Audit log #}
     {% if audit_logs %}
@@ -222,6 +264,7 @@
     {% endif %}
 
     {# Danger zone #}
+    {% if is_admin %}
     <div class="card card-danger">
         <h3 class="collapsible-header" data-toggle="danger-body" style="color:#dc2626;margin-top:0;cursor:pointer;">
             ⚠️ Danger Zone <span class="collapse-indicator">▾</span>
@@ -240,7 +283,7 @@
                 {% endif %}
             </p>
             <form method="POST"
-                  action="{{ url_for('main.regenerate_tokens', share_token=calendar.share_token, admin_token=calendar.admin_token) }}">
+                  action="{{ url_for('main.regenerate_tokens', share_token=calendar.share_token, admin_token=access_token) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-danger btn-confirm-delete"
                         data-confirm="Regenerate ALL tokens? Every existing share / manager / admin link will become invalid immediately. This cannot be undone.">
@@ -256,7 +299,7 @@
             <p style="color:#94a3b8;font-size:0.9rem;">
                 Permanently delete <strong>{{ calendar.name }}</strong> and all its events, members, and data.
             </p>
-            <form method="POST" action="{{ url_for('main.delete_calendar', share_token=calendar.share_token, admin_token=calendar.admin_token) }}">
+            <form method="POST" action="{{ url_for('main.delete_calendar', share_token=calendar.share_token, admin_token=access_token) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-danger btn-confirm-delete"
                         data-confirm="Permanently delete &laquo;{{ calendar.name }}&raquo; and all its events? This cannot be undone.">🗑️ Delete Calendar</button>
@@ -264,6 +307,7 @@
         </div>
         </div>
     </div>
+    {% endif %}
 </div>
 {% endblock %}
 
@@ -276,11 +320,19 @@
     var KEY = 'terminchen_history';
     var token = '{{ calendar.share_token }}';
     var name = {{ calendar.name | tojson }};
-    var adminToken = '{{ calendar.admin_token }}';
+    var adminToken = {{ (access_token if is_admin else '') | tojson }};
+    var managerToken = {{ (access_token if not is_admin else '') | tojson }};
     try {
         var history = JSON.parse(localStorage.getItem(KEY) || '[]');
+        var existing = history.find(function(h) { return h.token === token; }) || {};
+        if (!adminToken) adminToken = existing.admin_token || '';
+        if (!managerToken) managerToken = existing.manager_token || '';
+
         history = history.filter(function(h) { return h.token !== token; });
-        history.unshift({token: token, name: name, admin_token: adminToken, ts: Date.now()});
+        var entry = {token: token, name: name, ts: Date.now()};
+        if (adminToken) entry.admin_token = adminToken;
+        if (managerToken) entry.manager_token = managerToken;
+        history.unshift(entry);
         if (history.length > 10) history = history.slice(0, 10);
         localStorage.setItem(KEY, JSON.stringify(history));
     } catch(e) {}
@@ -290,7 +342,7 @@ window.initCollapsibleSections();
 
 // Auto-open settings section if URL has #settings or if there are form errors
 (function() {
-    var hasErrors = {{ 'true' if form.errors else 'false' }};
+    var hasErrors = {{ 'true' if (is_admin and form and form.errors) else 'false' }};
     if (!window.location.hash && !hasErrors) {
         window.setSectionCollapsed('settings-body', true);
     }
