@@ -1,5 +1,6 @@
 """Shared utility functions."""
 
+import html
 import secrets
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -46,7 +47,9 @@ def sanitize_html(text):
     """Strip all HTML tags from user input. Allow no tags."""
     if text is None:
         return None
-    return nh3.clean(text, tags=set()).strip()
+    cleaned = nh3.clean(text, tags=set()).strip()
+    # Store plain text (not HTML entities) so templates render characters like '&' naturally.
+    return html.unescape(cleaned)
 
 
 def format_datetime_local(dt, tz_name, fmt='%Y-%m-%d %H:%M', time_format='24', date_format='EU'):
