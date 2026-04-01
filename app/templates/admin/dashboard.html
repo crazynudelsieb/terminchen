@@ -340,14 +340,27 @@
 
 window.initCollapsibleSections();
 
-// Auto-open settings section if URL has #settings or if there are form errors
+// Collapse ALL sections by default, then selectively open if URL hash or form errors
 (function() {
+    var allSections = ['share-links-body', 'members-body', 'events-body', 'settings-body', 'activity-body', 'danger-body'];
+    allSections.forEach(function(id) { window.setSectionCollapsed(id, true); });
+
     var hasErrors = {{ 'true' if (is_admin and form and form.errors) else 'false' }};
-    if (!window.location.hash && !hasErrors) {
-        window.setSectionCollapsed('settings-body', true);
+
+    // Open settings if there are form validation errors
+    if (hasErrors) {
+        window.setSectionCollapsed('settings-body', false);
     }
-    if (window.location.hash === '#settings') {
-        var el = document.getElementById('settings');
+
+    // Open the section targeted by URL hash
+    var hash = window.location.hash.replace('#', '');
+    if (hash) {
+        var mapping = { 'settings': 'settings-body', 'events': 'events-body' };
+        var targetBody = mapping[hash];
+        if (targetBody) {
+            window.setSectionCollapsed(targetBody, false);
+        }
+        var el = document.getElementById(hash);
         if (el) el.scrollIntoView({ behavior: 'smooth' });
     }
 })();

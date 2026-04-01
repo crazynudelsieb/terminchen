@@ -25,7 +25,7 @@ def create_tag(calendar, name, color='#16a34a'):
     tag = EventTag(calendar_id=calendar.id, name=name, color=color)
     db.session.add(tag)
     db.session.commit()
-    logger.info("tag.created", extra={"tag_id": str(tag.id), "calendar_id": str(calendar.id), "name": name})
+    logger.info("tag.created", extra={"tag_id": str(tag.id), "calendar_id": str(calendar.id), "tag_name": name})
     return tag
 
 
@@ -36,7 +36,7 @@ def update_tag(tag, name=None, color=None):
     if color is not None:
         tag.color = color
     db.session.commit()
-    logger.info("tag.updated", extra={"tag_id": str(tag.id), "name": tag.name})
+    logger.info("tag.updated", extra={"tag_id": str(tag.id), "tag_name": tag.name})
     return tag
 
 
