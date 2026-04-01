@@ -1283,7 +1283,7 @@ def ical_feed(share_token):
 
     response = make_response(ical_bytes)
     response.headers['Content-Type'] = 'text/calendar; charset=utf-8'
-    response.headers['Content-Disposition'] = f'attachment; filename="{cal.name}.ics"'
+    response.headers['Content-Disposition'] = f'inline; filename="{cal.name}.ics"'
     response.headers['Cache-Control'] = 'no-cache, must-revalidate'
     return response
 

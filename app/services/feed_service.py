@@ -1,6 +1,7 @@
 """iCal feed generation service."""
 
 import logging
+from datetime import timedelta
 
 import icalendar
 
@@ -34,10 +35,15 @@ def generate_ical_feed(calendar):
         vevent.add('summary', event.title)
 
         if event.all_day:
-            # All-day events use DATE type (no time component)
-            vevent.add('dtstart', event.start_time.date())
+            # All-day events use DATE type.
+            # RFC5545 requires DTEND to be exclusive for DATE values.
+            # Internally we treat end_date as inclusive, so add +1 day.
+            start_date = event.start_time.date()
+            vevent.add('dtstart', start_date)
             if event.end_time:
-                vevent.add('dtend', event.end_time.date())
+                end_inclusive = event.end_time.date()
+                if end_inclusive >= start_date:
+                    vevent.add('dtend', end_inclusive + timedelta(days=1))
         else:
             vevent.add('dtstart', event.start_time)
             if event.end_time:
