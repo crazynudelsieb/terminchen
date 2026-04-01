@@ -206,4 +206,67 @@
             summaryEl.innerHTML = html;
         });
     }
+
+    // ── Bulk RSVP (select multiple members) ───────────
+
+    var bulkActions = document.getElementById('bulk-rsvp-actions');
+    if (bulkActions) {
+        initBulkRsvp(bulkActions);
+    }
+
+    function initBulkRsvp(actionsEl) {
+        var eventId = actionsEl.dataset.eventId;
+        var shareToken = actionsEl.dataset.shareToken;
+        var buttons = actionsEl.querySelectorAll('.btn-bulk-rsvp');
+        var toggleAll = document.getElementById('bulk-rsvp-toggle-all');
+
+        // Toggle all checkboxes
+        if (toggleAll) {
+            toggleAll.addEventListener('change', function () {
+                var checkboxes = document.querySelectorAll('#bulk-rsvp-members input[type="checkbox"]');
+                checkboxes.forEach(function (cb) { cb.checked = toggleAll.checked; });
+            });
+        }
+
+        buttons.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var checked = document.querySelectorAll('#bulk-rsvp-members input[type="checkbox"]:checked');
+                if (checked.length === 0) {
+                    alert('Please select at least one member.');
+                    return;
+                }
+
+                var memberIds = [];
+                checked.forEach(function (cb) { memberIds.push(cb.value); });
+
+                var status = btn.dataset.status;
+                var url = '/api/cal/' + shareToken + '/event/' + eventId + '/bulk-rsvp';
+
+                // Disable buttons during request
+                buttons.forEach(function (b) { b.disabled = true; });
+
+                window.apiFetch(url, {
+                    method: 'POST',
+                    body: JSON.stringify({ member_ids: memberIds, status: status }),
+                })
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    buttons.forEach(function (b) { b.disabled = false; });
+                    if (data.ok) {
+                        // Flash feedback on the clicked button
+                        btn.classList.add('active');
+                        setTimeout(function () { btn.classList.remove('active'); }, 1200);
+                        // Refresh the main RSVP lists
+                        refreshRsvpLists(shareToken, eventId);
+                    } else {
+                        alert(data.error || 'Failed to update RSVPs.');
+                    }
+                })
+                .catch(function () {
+                    buttons.forEach(function (b) { b.disabled = false; });
+                    alert('Network error. Please try again.');
+                });
+            });
+        });
+    }
 })();

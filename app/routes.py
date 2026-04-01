@@ -207,6 +207,9 @@ def _handle_create_event(cal, success_redirect, template_extra=None):
     form = EventForm()
     tags = tag_service.get_tags_for_calendar(cal)
 
+    # Carry return_to through the form so we redirect back to the right view
+    return_to = request.args.get('return_to') or request.form.get('return_to') or ''
+
     if request.method == 'GET' and request.args.get('date'):
         form.start_date.data = request.args['date']
 
@@ -216,7 +219,7 @@ def _handle_create_event(cal, success_redirect, template_extra=None):
 
         if not start_dt:
             flash('Invalid start date/time.', 'error')
-            ctx = dict(calendar=cal, form=form, editing=False, tags=tags)
+            ctx = dict(calendar=cal, form=form, editing=False, tags=tags, return_to=return_to)
             if template_extra:
                 ctx.update(template_extra)
             return render_template('event/form.html', **ctx)
@@ -238,9 +241,13 @@ def _handle_create_event(cal, success_redirect, template_extra=None):
 
         audit_service.log_action(cal, 'event.created', f'"{event.title}"')
         flash('Event created.', 'success')
-        return redirect(success_redirect)
+        # Redirect to the new event so the user can RSVP immediately
+        detail_url = url_for('main.event_detail', share_token=cal.share_token, event_id=event.id)
+        if return_to:
+            detail_url += '?return_to=' + return_to
+        return redirect(detail_url)
 
-    ctx = dict(calendar=cal, form=form, editing=False, tags=tags)
+    ctx = dict(calendar=cal, form=form, editing=False, tags=tags, return_to=return_to)
     if template_extra:
         ctx.update(template_extra)
     return render_template('event/form.html', **ctx)
@@ -255,6 +262,9 @@ def _handle_edit_event(cal, event_id, success_redirect, template_extra=None):
     form = EventForm(obj=event)
     tags = tag_service.get_tags_for_calendar(cal)
     selected_tag_ids = [str(t.id) for t in event.tags]
+
+    # Carry return_to through the edit form
+    return_to = request.args.get('return_to') or request.form.get('return_to') or ''
 
     if request.method == 'GET':
         local_start = utc_to_local(event.start_time, cal.timezone)
@@ -272,7 +282,7 @@ def _handle_edit_event(cal, event_id, success_redirect, template_extra=None):
         if not start_dt:
             flash('Invalid start date/time.', 'error')
             ctx = dict(calendar=cal, form=form, event=event, editing=True,
-                       tags=tags, selected_tag_ids=selected_tag_ids)
+                       tags=tags, selected_tag_ids=selected_tag_ids, return_to=return_to)
             if template_extra:
                 ctx.update(template_extra)
             return render_template('event/form.html', **ctx)
@@ -292,10 +302,14 @@ def _handle_edit_event(cal, event_id, success_redirect, template_extra=None):
 
         audit_service.log_action(cal, 'event.updated', f'"{event.title}"')
         flash('Event updated.', 'success')
-        return redirect(success_redirect)
+        # After edit, go back to event detail with return_to preserved
+        detail_url = url_for('main.event_detail', share_token=cal.share_token, event_id=event.id)
+        if return_to:
+            detail_url += '?return_to=' + return_to
+        return redirect(detail_url)
 
     ctx = dict(calendar=cal, form=form, event=event, editing=True,
-               tags=tags, selected_tag_ids=selected_tag_ids)
+               tags=tags, selected_tag_ids=selected_tag_ids, return_to=return_to)
     if template_extra:
         ctx.update(template_extra)
     return render_template('event/form.html', **ctx)
@@ -1104,6 +1118,9 @@ def event_detail(share_token, event_id):
     if selected_member_id:
         my_rsvp = rsvp_service.get_member_rsvp(event.id, selected_member_id)
 
+    # return_to: the calendar view the user came from (preserves view+params)
+    return_to = request.args.get('return_to', '')
+
     # Build edit URL if session has admin/manager tokens
     edit_url = None
     share = cal.share_token
@@ -1112,14 +1129,22 @@ def event_detail(share_token, event_id):
     if admin_tok:
         edit_url = url_for('main.edit_event', share_token=share,
                            admin_token=admin_tok, event_id=event.id)
+        if return_to:
+            edit_url += '?return_to=' + return_to
     elif mgr_tok:
         edit_url = url_for('main.manager_edit_event', share_token=share,
                            manager_token=mgr_tok, event_id=event.id)
+        if return_to:
+            edit_url += '?return_to=' + return_to
+
+    # Check if user has admin/manager access (for bulk RSVP)
+    has_elevated_access = bool(admin_tok or mgr_tok)
 
     return render_template('event/detail.html',
                            calendar=cal, event=event, rsvp_data=rsvp_data,
                            members=members, selected_member_id=selected_member_id,
-                           my_rsvp=my_rsvp, edit_url=edit_url)
+                           my_rsvp=my_rsvp, edit_url=edit_url,
+                           return_to=return_to, has_elevated_access=has_elevated_access)
 
 
 @main.route('/event/<event_share_token>')
@@ -1201,6 +1226,45 @@ def api_get_rsvps(share_token, event_id):
             'no_response': [_member_json(m) for m in rsvp_data['no_response']],
         },
     )
+
+
+@main.route('/api/cal/<share_token>/event/<event_id>/bulk-rsvp', methods=['POST'])
+def api_bulk_rsvp_selected(share_token, event_id):
+    """Bulk-set RSVP for selected members via JSON API (admin/manager only)."""
+    cal = _get_calendar_or_404(share_token)
+
+    # Require admin or manager access via session
+    admin_tok = session.get(f'admin_token_{share_token}')
+    mgr_tok = session.get(f'manager_token_{share_token}')
+    if not admin_tok and not mgr_tok:
+        return jsonify(error='Elevated access required'), 403
+
+    event = event_service.get_event_by_id(_parse_uuid(event_id))
+    if not event or event.calendar_id != cal.id:
+        return jsonify(error='Event not found'), 404
+
+    data = request.get_json(silent=True) or {}
+    member_ids = data.get('member_ids', [])
+    status = data.get('status')
+
+    if not member_ids or not status:
+        return jsonify(error='member_ids (array) and status required'), 400
+
+    if status not in ('in', 'maybe', 'out'):
+        return jsonify(error='Invalid status. Use: in, maybe, out'), 400
+
+    count = 0
+    for mid_str in member_ids:
+        mid = _parse_uuid(mid_str)
+        member = member_service.get_member_by_id(mid)
+        if member and member.calendar_id == cal.id:
+            rsvp_service.set_rsvp(event.id, member.id, status)
+            count += 1
+
+    audit_service.log_action(cal, 'rsvp.bulk_selected',
+                             f'Set {count} selected members → {status} for "{event.title}"')
+
+    return jsonify(ok=True, count=count, status=status)
 
 
 # ── iCal Feed ────────────────────────────────────────────

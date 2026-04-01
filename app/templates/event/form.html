@@ -4,7 +4,9 @@
 
 {% block header_nav %}
 <nav class="cal-nav">
-    {% if manager_token is defined and manager_token %}
+    {% if return_to %}
+    <a href="{{ return_to }}" class="btn btn-sm">← Back</a>
+    {% elif manager_token is defined and manager_token %}
     <a href="{{ url_for('main.manager_dashboard', share_token=calendar.share_token, manager_token=manager_token) }}" class="btn btn-sm">← Dashboard</a>
     {% else %}
     <a href="{{ url_for('main.admin_dashboard', share_token=calendar.share_token, admin_token=calendar.admin_token) }}" class="btn btn-sm">← Dashboard</a>
@@ -18,6 +20,7 @@
 
     <form method="POST" data-date-format="{{ calendar.date_format }}" data-time-format="{{ calendar.time_format }}">
         {{ form.hidden_tag() }}
+        {% if return_to %}<input type="hidden" name="return_to" value="{{ return_to }}">{% endif %}
 
         <div class="form-group">
             {{ form.title.label(class="form-label") }}
@@ -94,7 +97,9 @@
 
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">{% if editing %}Save Changes{% else %}Create Event{% endif %}</button>
-            {% if manager_token is defined and manager_token %}
+            {% if return_to %}
+            <a href="{{ return_to }}" class="btn btn-secondary">Cancel</a>
+            {% elif manager_token is defined and manager_token %}
             <a href="{{ url_for('main.manager_dashboard', share_token=calendar.share_token, manager_token=manager_token) }}" class="btn btn-secondary">Cancel</a>
             {% else %}
             <a href="{{ url_for('main.admin_dashboard', share_token=calendar.share_token, admin_token=calendar.admin_token) }}" class="btn btn-secondary">Cancel</a>

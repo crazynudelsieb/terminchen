@@ -860,6 +860,54 @@ main.container {
 .rsvp-group-out li { border-left: 2px solid var(--accent-danger); }
 .rsvp-group-none li { border-left: 2px solid var(--border-color); }
 
+/* ── Bulk RSVP ─────────────────────────────────────── */
+
+.bulk-rsvp-controls {
+    margin-bottom: 0.75rem;
+}
+
+.bulk-rsvp-select-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.bulk-rsvp-members {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+}
+
+.bulk-rsvp-member {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.65rem;
+    background-color: var(--bg-tertiary);
+    border-radius: 16px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background-color var(--transition);
+}
+
+.bulk-rsvp-member:hover {
+    background-color: var(--bg-secondary);
+}
+
+.bulk-rsvp-member input[type="checkbox"] {
+    accent-color: var(--accent-primary);
+}
+
+.bulk-rsvp-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
 /* ── Share Links ───────────────────────────────────── */
 
 .share-links { }

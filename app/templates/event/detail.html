@@ -8,7 +8,11 @@
 
 {% block header_nav %}
 <nav class="cal-nav">
+    {% if return_to %}
+    <a href="{{ return_to }}" class="btn btn-sm">← {{ calendar.name }}</a>
+    {% else %}
     <a href="{{ url_for('main.calendar_view', share_token=calendar.share_token) }}" class="btn btn-sm">← {{ calendar.name }}</a>
+    {% endif %}
 </nav>
 {% endblock %}
 
@@ -68,10 +72,48 @@
         <h2>RSVP</h2>
         {{ rsvp_widget(calendar, event, members, rsvp_data, selected_member_id, my_rsvp) }}
     </div>
+
+    {# Bulk RSVP section (admin/manager only) #}
+    {% if has_elevated_access %}
+    <div class="card">
+        <h2 class="collapsible-header" data-toggle="bulk-rsvp-body" style="cursor:pointer;">
+            👥 Bulk RSVP <span class="collapse-indicator">▸</span>
+        </h2>
+        <div id="bulk-rsvp-body" class="collapsible-body" style="display:none;">
+            <p class="text-muted" style="margin-bottom:0.75rem;">Select members and set their RSVP status at once.</p>
+            <div class="bulk-rsvp-controls">
+                <label class="bulk-rsvp-select-all">
+                    <input type="checkbox" id="bulk-rsvp-toggle-all"> Select all
+                </label>
+            </div>
+            <div class="bulk-rsvp-members" id="bulk-rsvp-members">
+                {% for member in members|sort(attribute='name') %}
+                <label class="bulk-rsvp-member">
+                    <input type="checkbox" name="bulk_member" value="{{ member.id }}">
+                    {{ member.name }}
+                </label>
+                {% endfor %}
+            </div>
+            <div class="bulk-rsvp-actions" id="bulk-rsvp-actions"
+                 data-event-id="{{ event.id }}" data-share-token="{{ calendar.share_token }}">
+                <button type="button" class="btn btn-rsvp btn-rsvp-in btn-bulk-rsvp" data-status="in">✓ In</button>
+                <button type="button" class="btn btn-rsvp btn-rsvp-maybe btn-bulk-rsvp" data-status="maybe">? Maybe</button>
+                <button type="button" class="btn btn-rsvp btn-rsvp-out btn-bulk-rsvp" data-status="out">✗ Out</button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/collapsible.js') }}"></script>
 <script src="{{ url_for('static', filename='js/rsvp.js') }}"></script>
 <script src="{{ url_for('static', filename='js/clipboard.js') }}"></script>
+{% if has_elevated_access %}
+<script>
+// Initialize collapsible sections for bulk RSVP
+if (window.initCollapsibleSections) window.initCollapsibleSections();
+</script>
+{% endif %}
 {% endblock %}
