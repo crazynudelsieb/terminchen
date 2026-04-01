@@ -60,13 +60,7 @@
     {% endif %}
 </div>
 
-{# Timezone indicator + push opt-in #}
-<div class="calendar-footer">
-    <p class="tz-indicator">Times shown in {{ calendar.timezone }}</p>
-    <button class="btn btn-sm btn-push-subscribe" data-share-token="{{ calendar.share_token }}">
-        🔔 Enable Notifications
-    </button>
-</div>
+<p class="tz-indicator">Times shown in {{ calendar.timezone }}</p>
 {% endblock %}
 
 {% block scripts %}

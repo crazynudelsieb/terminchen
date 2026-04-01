@@ -47,12 +47,15 @@
     });
 
     // ── Push Notification opt-in ──────────────────────
-    // Buttons with class .btn-push-subscribe trigger subscription.
-    // The button should have data-share-token on it.
+    // Footer buttons with class .btn-push-subscribe trigger subscription.
+    // Hidden on non-calendar pages (no share_token).
     document.querySelectorAll('.btn-push-subscribe').forEach(function (btn) {
+        var shareToken = btn.dataset.shareToken;
+        if (!shareToken) {
+            btn.style.display = 'none';
+            return;
+        }
         btn.addEventListener('click', function () {
-            var shareToken = btn.dataset.shareToken;
-            if (!shareToken) return;
             subscribeToPush(shareToken, btn);
         });
     });
@@ -73,7 +76,7 @@
             if (!data.enabled) {
                 alert('Push notifications are not enabled on this server.');
                 btn.disabled = false;
-                btn.textContent = '🔔 Enable Notifications';
+                btn.textContent = '🔔 Notifications';
                 return;
             }
 
@@ -101,14 +104,14 @@
         })
         .then(function (res) {
             if (res && res.ok) {
-                btn.textContent = '🔔 Notifications On';
+                btn.textContent = '🔔 Subscribed';
                 btn.classList.add('btn-push-active');
             }
         })
         .catch(function (err) {
             console.error('Push subscription failed:', err);
             btn.disabled = false;
-            btn.textContent = '🔔 Enable Notifications';
+            btn.textContent = '🔔 Notifications';
             if (err && err.name === 'NotAllowedError') {
                 alert('Notification permission was denied. Enable it in your browser settings.');
             }

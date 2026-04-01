@@ -81,7 +81,10 @@ class Config:
         app.config['SMTP_FROM_NAME'] = os.getenv('SMTP_FROM_NAME', app.config['APP_NAME'])
 
         # ── Web Push (VAPID) ──
-        app.config['VAPID_PRIVATE_KEY'] = os.getenv('VAPID_PRIVATE_KEY', '')
+        # PEM keys from .env may contain literal '\n' — convert to real newlines
+        vapid_priv = os.getenv('VAPID_PRIVATE_KEY', '')
+        vapid_priv = vapid_priv.replace('\\n', '\n').replace('\\r', '')
+        app.config['VAPID_PRIVATE_KEY'] = vapid_priv
         app.config['VAPID_PUBLIC_KEY'] = os.getenv('VAPID_PUBLIC_KEY', '')
         app.config['VAPID_CLAIMS_EMAIL'] = os.getenv('VAPID_CLAIMS_EMAIL',
                                                       app.config.get('LEGAL_EMAIL', ''))

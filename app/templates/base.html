@@ -75,6 +75,11 @@
                     <img src="https://cdn.simpleicons.org/github/94a3b8" alt="GitHub" class="footer-github-icon">GitHub
                 </a>
                 {% endif %}
+                {% if push_enabled %}
+                <button class="btn-push-subscribe footer-push-btn" data-share-token="{{ request.view_args.get('share_token', '') }}">
+                    🔔 Notifications
+                </button>
+                {% endif %}
             </div>
         </div>
     </footer>

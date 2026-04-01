@@ -50,6 +50,8 @@ def create_app():
     seo_domain = app.config.get('SEO_DOMAIN', '')
     seo_base_url = f'https://{seo_domain}' if seo_domain else app.config['BASE_URL']
 
+    push_enabled = bool(app.config.get('VAPID_PUBLIC_KEY'))
+
     app.jinja_env.globals.update(
         app_name=app.config['APP_NAME'],
         app_tagline=app.config['APP_TAGLINE'],
@@ -58,6 +60,7 @@ def create_app():
         seo_base_url=seo_base_url,
         seo_domain=seo_domain,
         cf_beacon_token=app.config.get('CLOUDFLARE_BEACON_TOKEN', ''),
+        push_enabled=push_enabled,
     )
 
     @app.template_filter('localtime')
