@@ -126,7 +126,7 @@ class EventForm(FlaskForm):
 class MemberForm(FlaskForm):
     """Form for adding/editing a member."""
     name = StringField('Name', validators=[DataRequired(), Length(max=100)])
-    color = StringField('Color', default='#16a34a', validators=[Optional(), Length(max=7)])
+    color = StringField('Color', validators=[Optional(), Length(max=7)])
     birthday = StringField('Birthday', validators=[Optional(), Length(max=10)])
 
 

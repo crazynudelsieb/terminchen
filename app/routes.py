@@ -625,6 +625,7 @@ def members_list(share_token, admin_token):
 
     members = member_service.get_all_members(cal)
     form = MemberForm()
+    form.color.data = secrets.choice(member_service.MEMBER_COLORS)
     icon_form = MemberIconForm()
     return render_template('admin/members.html',
                            calendar=cal, members=members, form=form, icon_form=icon_form)
