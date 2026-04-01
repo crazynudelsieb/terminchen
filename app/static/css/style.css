@@ -1402,59 +1402,216 @@ main.container {
     h1 { font-size: 1.4rem; }
     .hero h1 { font-size: 1.6rem; }
 
+    /* ── Header & nav ───────────────────────────────── */
     .site-header .container {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: stretch;
+        gap: 0.4rem;
+    }
+
+    .site-header .container > .logo {
+        align-self: flex-start;
+    }
+
+    .cal-nav {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.35rem;
+    }
+
+    .cal-name {
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .view-switcher, .admin-nav {
         width: 100%;
+        display: flex;
+        gap: 0.25rem;
         overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;       /* Firefox */
+    }
+    .view-switcher::-webkit-scrollbar,
+    .admin-nav::-webkit-scrollbar {
+        display: none;               /* Chrome / Safari */
     }
 
+    /* Make nav buttons equally sized and touch-friendly */
+    .view-switcher .btn,
+    .admin-nav .btn {
+        flex: 1 1 0;
+        min-width: 0;
+        text-align: center;
+        padding: 0.45rem 0.35rem;
+        font-size: 0.78rem;
+    }
+
+    /* ── Forms ───────────────────────────────────────── */
     .form-row { flex-direction: column; gap: 0; }
     .form-group-half { min-width: 100%; }
 
+    /* Date/time row: let both fields breathe */
+    .form-row-tight {
+        gap: 0.35rem;
+    }
+    .form-row-tight .time-input {
+        flex: 0 0 5.5rem;
+    }
+
+    /* ── Admin dashboard event actions ──────────────── */
     .admin-event-row {
         flex-direction: column;
     }
 
     .admin-event-actions {
         flex-direction: row;
+        flex-wrap: wrap;
         padding-top: 0;
+        gap: 0.35rem;
     }
 
+    .admin-event-actions .btn {
+        font-size: 0.78rem;
+        padding: 0.35rem 0.55rem;
+    }
+
+    /* ── Members ─────────────────────────────────────── */
     .member-card {
         flex-direction: column;
         align-items: flex-start;
+        padding: 1rem;
     }
 
     .member-card-actions {
         width: 100%;
+        flex-direction: column;
+        gap: 0.5rem;
     }
 
     .member-edit-form {
         flex-wrap: wrap;
         width: 100%;
+        gap: 0.4rem;
     }
 
     .member-edit-form .form-input-sm {
         flex: 1;
-        min-width: 120px;
+        min-width: 0;
+        width: 100%;
     }
 
-    .rsvp-buttons {
+    .member-edit-form .form-input-color-sm {
+        flex: 0 0 auto;
+    }
+
+    /* Member add form row: stack on mobile */
+    .admin-members .card-form .form-row {
         flex-direction: column;
+        gap: 0.5rem;
+    }
+    .admin-members .card-form .form-row .form-group {
+        flex: unset !important;
+        width: 100%;
+    }
+
+    /* ── RSVP ────────────────────────────────────────── */
+    .rsvp-buttons {
+        flex-direction: row;
     }
 
     .btn-rsvp {
-        min-width: 100%;
+        min-width: 0;
+        flex: 1;
+        padding: 0.55rem 0.4rem;
+        font-size: 0.85rem;
     }
 
-    /* Month grid: smaller cells on mobile */
+    /* Quick RSVP row: stack member select above buttons */
+    .quick-rsvp {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.35rem;
+    }
+
+    .quick-rsvp-select {
+        max-width: 100%;
+    }
+
+    .quick-rsvp-buttons {
+        justify-content: flex-start;
+    }
+
+    /* Bigger quick-RSVP touch targets */
+    .btn-rsvp-quick {
+        width: 36px;
+        height: 36px;
+        font-size: 0.95rem;
+    }
+
+    /* ── Event detail ────────────────────────────────── */
+    .event-title-row {
+        flex-wrap: wrap;
+        gap: 0.4rem;
+    }
+
+    .event-title-row h1 {
+        min-width: 0;
+        word-break: break-word;
+    }
+
+    .event-detail .card {
+        padding: 1rem;
+    }
+
+    /* ── Share links ─────────────────────────────────── */
+    .share-input-group {
+        flex-wrap: wrap;
+    }
+
+    .share-input-group .form-input {
+        min-width: 0;
+        flex: 1 1 100%;
+        font-size: 0.75rem;
+    }
+
+    .share-input-group .btn {
+        flex: 0 0 auto;
+    }
+
+    .share-link-row label {
+        font-size: 0.8rem;
+        line-height: 1.3;
+    }
+
+    /* ── Month grid: smaller cells on mobile ─────────── */
+    .month-nav {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.35rem;
+    }
+
+    .month-title { font-size: 1.1rem; }
+
+    .month-day-names {
+        font-size: 0.7rem;
+    }
+
     .month-cell {
-        min-height: 48px;
-        padding: 0.2rem;
+        min-height: 44px;
+        padding: 0.15rem;
+    }
+
+    .month-cell-date {
+        font-size: 0.72rem;
+    }
+
+    .month-date-today {
+        width: 20px;
+        height: 20px;
+        font-size: 0.68rem;
     }
 
     .month-cell-event {
@@ -1474,9 +1631,128 @@ main.container {
 
     .month-event-title { display: none; }
     .month-cell-more { display: none; }
+    .month-cell-weather { font-size: 0.5rem; }
 
-    .month-title { font-size: 1.1rem; }
+    /* ── Week view ───────────────────────────────────── */
+    .week-nav {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.35rem;
+    }
+
     .week-title { font-size: 1rem; }
+
+    .week-day-today {
+        padding: 0.4rem 0.5rem;
+    }
+
+    /* ── General mobile improvements ─────────────────── */
+
+    /* Bigger button touch targets */
+    .btn-sm {
+        padding: 0.4rem 0.65rem;
+        font-size: 0.82rem;
+    }
+
+    /* Cards: a bit more padding */
+    .card {
+        padding: 1rem;
+    }
+
+    .card-form {
+        padding: 1rem;
+    }
+
+    /* Tag management: responsive cards */
+    .tag-card {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding: 0.65rem 0.75rem;
+    }
+
+    .tag-edit-form {
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        width: 100%;
+    }
+
+    .tag-card-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    /* Collapsible headers: bigger touch target */
+    .collapsible-header {
+        padding: 0.25rem 0;
+        font-size: 1.1rem;
+    }
+
+    /* Footer: tighter on mobile */
+    .site-footer {
+        font-size: 0.8rem;
+        padding: 0.75rem 0;
+    }
+
+    .footer-links {
+        gap: 0.75rem;
+    }
+
+    /* Embed link */
+    .embed-title { font-size: 1rem; }
+
+    /* Hero: reduce top padding */
+    .hero {
+        padding: 1.25rem 0 1rem;
+    }
+
+    /* Timezone indicator */
+    .tz-indicator {
+        font-size: 0.75rem;
+    }
+
+    /* Bulk RSVP: full-width action buttons */
+    .bulk-rsvp-actions {
+        flex-direction: column;
+    }
+
+    .bulk-rsvp-actions .btn {
+        width: 100%;
+    }
+
+    /* Audit log: stack on narrow */
+    .audit-log-entry {
+        flex-direction: column;
+        gap: 0.15rem;
+    }
+}
+
+/* ── Small phones (≤ 380px) — extra-tight ──────────── */
+@media (max-width: 380px) {
+    .container {
+        padding: 0 0.6rem;
+    }
+
+    .month-cell {
+        min-height: 38px;
+        padding: 0.1rem;
+    }
+
+    .month-cell-date { font-size: 0.65rem; }
+    .month-cell-weather { display: none; }
+
+    .view-switcher .btn,
+    .admin-nav .btn {
+        font-size: 0.72rem;
+        padding: 0.4rem 0.25rem;
+    }
+
+    .event-card {
+        padding: 0.6rem 0.75rem;
+    }
+
+    .share-input-group .form-input {
+        font-size: 0.7rem;
+    }
 }
 
 @media (min-width: 641px) and (max-width: 1024px) {
