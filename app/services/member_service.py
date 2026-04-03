@@ -67,6 +67,36 @@ def reactivate_member(member):
     logger.info("member.reactivated", extra={"member_id": str(member.id)})
 
 
+def delete_member(member, upload_dir):
+    """Permanently delete a deactivated member and clean up their avatar.
+
+    Args:
+        member: Member model instance (must be inactive)
+        upload_dir: Base upload directory path
+
+    Raises:
+        ValueError: If the member is still active
+    """
+    if member.is_active:
+        raise ValueError("Cannot delete an active member. Deactivate first.")
+
+    # Clean up avatar file if present
+    if member.icon_filename:
+        avatar_path = os.path.join(upload_dir, 'avatars', member.icon_filename)
+        if os.path.exists(avatar_path):
+            os.remove(avatar_path)
+
+    member_id = str(member.id)
+    member_name = member.name
+    calendar_id = str(member.calendar_id)
+
+    db.session.delete(member)
+    db.session.commit()
+    logger.info("member.deleted", extra={
+        "calendar_id": calendar_id, "member_id": member_id, "member_name": member_name
+    })
+
+
 def get_member_by_id(member_id):
     """Look up a member by UUID."""
     return Member.query.get(member_id)

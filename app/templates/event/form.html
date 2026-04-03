@@ -74,9 +74,9 @@
         </div>
 
         <div class="form-group">
-            {{ form.whatsapp_url.label(class="form-label") }}
-            {{ form.whatsapp_url(class="form-input", placeholder="https://chat.whatsapp.com/...") }}
-            {% for error in form.whatsapp_url.errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+            {{ form.event_url.label(class="form-label") }}
+            {{ form.event_url(class="form-input", placeholder="https://...") }}
+            {% for error in form.event_url.errors %}<p class="form-error">{{ error }}</p>{% endfor %}
         </div>
 
         {% if tags is defined and tags %}

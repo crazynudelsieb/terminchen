@@ -153,7 +153,7 @@ class Event(db.Model):
     # Links
     location = db.Column(db.String(500), nullable=True)
     location_url = db.Column(db.String(2048), nullable=True)
-    whatsapp_url = db.Column(db.String(2048), nullable=True)
+    event_url = db.Column(db.String(2048), name='whatsapp_url', nullable=True)
 
     # Tracking
     created_by_member_id = db.Column(UUID(as_uuid=True), db.ForeignKey('member.id', ondelete='SET NULL'), nullable=True)

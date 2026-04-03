@@ -33,7 +33,7 @@ def _sanitize_url(url):
 
 def create_event(calendar, title, start_time_local, end_time_local=None,
                  all_day=False, description=None, location=None,
-                 location_url=None, whatsapp_url=None, created_by_member_id=None):
+                 location_url=None, event_url=None, created_by_member_id=None):
     """Create a new event on a calendar.
 
     Args:
@@ -45,7 +45,7 @@ def create_event(calendar, title, start_time_local, end_time_local=None,
         description: Optional event description
         location: Optional location text
         location_url: Optional location URL
-        whatsapp_url: Optional WhatsApp group link
+        event_url: Optional event link
         created_by_member_id: Optional UUID of the creating member
 
     Returns:
@@ -77,7 +77,7 @@ def create_event(calendar, title, start_time_local, end_time_local=None,
         all_day=all_day,
         location=sanitize_html(location),
         location_url=_sanitize_url(location_url),
-        whatsapp_url=_sanitize_url(whatsapp_url),
+        event_url=_sanitize_url(event_url),
         created_by_member_id=created_by_member_id,
     )
     db.session.add(event)
@@ -103,7 +103,7 @@ def duplicate_event(event, calendar):
         all_day=event.all_day,
         location=event.location,
         location_url=event.location_url,
-        whatsapp_url=event.whatsapp_url,
+        event_url=event.event_url,
     )
     db.session.add(new_event)
     # Copy tag assignments
@@ -121,13 +121,13 @@ def duplicate_event(event, calendar):
 def update_event(event, calendar, **kwargs):
     """Update an event. Handles timezone conversion for time fields."""
     time_fields = {'start_time_local', 'end_time_local'}
-    simple_fields = {'title', 'description', 'location', 'location_url', 'whatsapp_url', 'all_day'}
+    simple_fields = {'title', 'description', 'location', 'location_url', 'event_url', 'all_day'}
 
     for key, value in kwargs.items():
         if key in simple_fields:
             if key in ('title', 'description', 'location'):
                 value = sanitize_html(value)
-            elif key in ('location_url', 'whatsapp_url'):
+            elif key in ('location_url', 'event_url'):
                 value = _sanitize_url(value)
             setattr(event, key, value)
 

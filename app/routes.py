@@ -284,7 +284,7 @@ def _handle_create_event(cal, success_redirect, template_extra=None):
             description=form.description.data,
             location=form.location.data,
             location_url=form.location_url.data,
-            whatsapp_url=form.whatsapp_url.data,
+            event_url=form.event_url.data,
         )
         selected_tag_ids = request.form.getlist('tags')
         if selected_tag_ids:
@@ -345,7 +345,7 @@ def _handle_edit_event(cal, event_id, success_redirect, template_extra=None):
             all_day=form.all_day.data,
             location=form.location.data,
             location_url=form.location_url.data,
-            whatsapp_url=form.whatsapp_url.data,
+            event_url=form.event_url.data,
         )
         tag_service.set_event_tags(event, request.form.getlist('tags'), cal)
 
@@ -910,6 +910,27 @@ def deactivate_member(share_token, admin_token, member_id):
     else:
         member_service.reactivate_member(member)
         flash('Member reactivated.', 'success')
+
+    return redirect(url_for('main.members_list', share_token=share_token, admin_token=admin_token))
+
+
+@main.route('/cal/<share_token>/admin/<admin_token>/members/<member_id>/delete', methods=['POST'])
+def delete_member(share_token, admin_token, member_id):
+    """Permanently delete a deactivated member."""
+    cal, authenticated = _require_admin(share_token, admin_token)
+    if not authenticated:
+        abort(403)
+
+    member = member_service.get_member_by_id(_parse_uuid(member_id))
+    if not member or member.calendar_id != cal.id:
+        abort(404)
+
+    if member.is_active:
+        flash('Cannot delete an active member. Deactivate them first.', 'danger')
+    else:
+        member_service.delete_member(member, current_app.config['UPLOAD_DIR'])
+        audit_service.log_action(cal, 'member.deleted', f'"{member.name}"')
+        flash('Member permanently deleted.', 'success')
 
     return redirect(url_for('main.members_list', share_token=share_token, admin_token=admin_token))
 
@@ -1578,7 +1599,7 @@ def api_events(share_token):
             'all_day': e.all_day,
             'location': e.location,
             'location_url': e.location_url,
-            'whatsapp_url': e.whatsapp_url,
+            'event_url': e.event_url,
             'share_token': e.share_token,
             'rsvp_summary': e.rsvp_summary,
         } for e in events],

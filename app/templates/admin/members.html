@@ -90,6 +90,15 @@
                         <button type="submit" class="btn btn-sm btn-success" title="Reactivate">Reactivate</button>
                     {% endif %}
                 </form>
+                {# Delete (only for inactive members) #}
+                {% if not member.is_active %}
+                <form method="POST"
+                      action="{{ url_for('main.delete_member', share_token=calendar.share_token, admin_token=access_token, member_id=member.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-danger btn-confirm-delete" title="Delete permanently"
+                            data-confirm="Permanently delete {{ member.name }}? This cannot be undone.">Delete</button>
+                </form>
+                {% endif %}
                 {% endif %}
             </div>
         </div>

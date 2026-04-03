@@ -123,7 +123,7 @@ class EventForm(FlaskForm):
     all_day = BooleanField('All Day Event', default=False)
     location = StringField('Location', validators=[Optional(), Length(max=500)])
     location_url = StringField('Location Link', validators=[Optional(), URL(), Length(max=2048)])
-    whatsapp_url = StringField('WhatsApp Group Link', validators=[Optional(), URL(), Length(max=2048)])
+    event_url = StringField('Event Link', validators=[Optional(), URL(), Length(max=2048)])
 
 
 class MemberForm(FlaskForm):
