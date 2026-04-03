@@ -74,6 +74,24 @@
       }
     }
 
+    // Try bare digits without colon (e.g. "2000" -> "20:00", "830" -> "08:30", "900" -> "09:00")
+    var bareDigits = str.match(/^(\d{3,4})$/);
+    if (bareDigits) {
+      var raw = bareDigits[1];
+      var bh, bm;
+      if (raw.length === 4) {
+        bh = parseInt(raw.substring(0, 2), 10);
+        bm = parseInt(raw.substring(2, 4), 10);
+      } else {
+        // 3 digits: first digit is hour, last two are minutes (e.g. 830 -> 8:30)
+        bh = parseInt(raw.substring(0, 1), 10);
+        bm = parseInt(raw.substring(1, 3), 10);
+      }
+      if (bh >= 0 && bh <= 23 && bm >= 0 && bm <= 59) {
+        return pad(bh) + ':' + pad(bm);
+      }
+    }
+
     // Try bare hour (e.g. "19" or "7")
     var hourMatch = str.match(/^(\d{1,2})$/);
     if (hourMatch) {
@@ -119,7 +137,7 @@
       textInput.className = className;
       textInput.placeholder = getPlaceholder(fmt);
       textInput.autocomplete = 'off';
-      textInput.inputMode = fmt === '12' ? 'text' : 'numeric';
+      textInput.inputMode = 'text';
       textInput.value = formatTime(isoValue, fmt);
       if (id) textInput.id = id + '_display';
 
