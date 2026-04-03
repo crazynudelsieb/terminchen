@@ -119,7 +119,7 @@
   }
 
   function enhanceTimeInputs() {
-    var timeInputs = document.querySelectorAll('input[type="time"]');
+    var timeInputs = document.querySelectorAll('input[data-role="time"], input[type="time"]');
 
     timeInputs.forEach(function (original) {
       if (original.dataset.timeEnhanced) return;
@@ -131,28 +131,58 @@
       var id = original.id;
       var className = original.className;
 
-      // Create visible text input
-      var textInput = document.createElement('input');
-      textInput.type = 'text';
-      textInput.className = className;
-      textInput.placeholder = getPlaceholder(fmt);
-      textInput.autocomplete = 'off';
-      textInput.inputMode = 'text';
-      textInput.value = formatTime(isoValue, fmt);
-      if (id) textInput.id = id + '_display';
+      var isAlreadyText = (original.type === 'text');
 
-      // Hidden input with 24h value for the server
-      var hiddenInput = document.createElement('input');
-      hiddenInput.type = 'hidden';
-      hiddenInput.name = name;
-      if (id) hiddenInput.id = id;
-      hiddenInput.value = isoValue;
+      if (isAlreadyText) {
+        // Input is already type="text" from HTML — enhance in-place
+        original.inputMode = 'text';
+        original.autocomplete = 'off';
+        if (!original.placeholder) original.placeholder = getPlaceholder(fmt);
 
-      // Replace original
-      var frag = document.createDocumentFragment();
-      frag.appendChild(textInput);
-      frag.appendChild(hiddenInput);
-      original.parentNode.replaceChild(frag, original);
+        // Create hidden input for 24h server value
+        var hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = name;
+        if (id) hiddenInput.id = id + '_hidden';
+        hiddenInput.value = isoValue ? parseTime(isoValue, fmt) || isoValue : '';
+        original.parentNode.insertBefore(hiddenInput, original.nextSibling);
+
+        // Rename visible input so hidden carries the form value
+        original.removeAttribute('name');
+        if (id) original.id = id + '_display';
+
+        // Format display value
+        if (isoValue) {
+          var parsed24 = parseTime(isoValue, fmt);
+          if (parsed24) {
+            original.value = formatTime(parsed24, fmt);
+            hiddenInput.value = parsed24;
+          }
+        }
+
+        var textInput = original;
+      } else {
+        // Legacy type="time" — replace with text input
+        var textInput = document.createElement('input');
+        textInput.type = 'text';
+        textInput.className = className;
+        textInput.placeholder = getPlaceholder(fmt);
+        textInput.autocomplete = 'off';
+        textInput.inputMode = 'text';
+        textInput.value = formatTime(isoValue, fmt);
+        if (id) textInput.id = id + '_display';
+
+        var hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = name;
+        if (id) hiddenInput.id = id;
+        hiddenInput.value = isoValue;
+
+        var frag = document.createDocumentFragment();
+        frag.appendChild(textInput);
+        frag.appendChild(hiddenInput);
+        original.parentNode.replaceChild(frag, original);
+      }
 
       // === Event handlers ===
 
