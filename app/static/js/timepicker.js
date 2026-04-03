@@ -122,21 +122,26 @@
       digits = initVal.replace(':', '');
     }
 
+    var hasFocus = false;
+
     function render() {
-      textInput.value = digits.length ? maskFromDigits(digits.padStart(4, '0')) : EMPTY_MASK;
+      if (digits.length) {
+        textInput.value = maskFromDigits(digits.padStart(4, '0'));
+      } else {
+        // Empty: show mask only while focused, blank otherwise (so placeholder shows)
+        textInput.value = hasFocus ? EMPTY_MASK : '';
+      }
       if (digits.length === 4) {
         var valid = digitsToHHMM(digits);
         hiddenInput.value = valid;
         textInput.setCustomValidity(valid ? '' : 'Invalid time');
       } else {
         hiddenInput.value = '';
-        textInput.setCustomValidity(digits.length ? '' : '');
+        textInput.setCustomValidity('');
       }
     }
 
-    /** Place cursor after the last meaningful position */
     function setCursorEnd() {
-      // always put cursor at the end of the display text
       var len = textInput.value.length;
       textInput.setSelectionRange(len, len);
     }
@@ -145,22 +150,19 @@
 
     // On focus: show mask, position cursor
     textInput.addEventListener('focus', function () {
-      if (!textInput.value || textInput.value === textInput.placeholder) {
-        textInput.value = EMPTY_MASK;
-      }
-      // small delay so the browser doesn't override cursor position
+      hasFocus = true;
+      render();
       setTimeout(setCursorEnd, 0);
     });
 
-    // On blur: clean up display
+    // On blur: auto-pad, validate, and clean up display
     textInput.addEventListener('blur', function () {
+      hasFocus = false;
       if (digits.length === 0) {
-        textInput.value = '';
-        hiddenInput.value = '';
-        textInput.setCustomValidity('');
+        render();  // clears to '' so placeholder shows
         return;
       }
-      // Pad and validate
+      // Pad partial input and validate
       var padded = digits.padStart(4, '0');
       var valid = digitsToHHMM(padded);
       if (valid) {
@@ -168,6 +170,8 @@
         hiddenInput.value = valid;
         textInput.value = formatTime(valid, fmt);
         textInput.setCustomValidity('');
+      } else {
+        render();
       }
     });
 
@@ -284,7 +288,7 @@
         // Input is already type="text" from HTML — enhance in-place
         original.inputMode = 'text';
         original.autocomplete = 'off';
-        original.placeholder = fmt === '12' ? 'h:MM AM/PM' : 'HH:MM';
+        original.placeholder = fmt === '12' ? 'h:MM AM/PM' : EMPTY_MASK;
 
         hiddenInput = document.createElement('input');
         hiddenInput.type = 'hidden';
@@ -311,7 +315,7 @@
         textInput = document.createElement('input');
         textInput.type = 'text';
         textInput.className = className;
-        textInput.placeholder = fmt === '12' ? 'h:MM AM/PM' : 'HH:MM';
+        textInput.placeholder = fmt === '12' ? 'h:MM AM/PM' : EMPTY_MASK;
         textInput.autocomplete = 'off';
         textInput.inputMode = 'text';
         textInput.value = formatTime(isoValue, fmt);
