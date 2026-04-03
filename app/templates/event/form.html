@@ -41,7 +41,7 @@
                            class="form-input" value="{{ form.start_date.data or '' }}" required>
                     <input type="text" name="start_time" id="start_time" data-role="time"
                            class="form-input time-input" inputmode="text" autocomplete="off"
-                           placeholder="HH:MM" value="{{ form.start_time_val|default('', true) }}">
+                           placeholder="  :  " value="{{ form.start_time_val|default('', true) }}">
                 </div>
                 {% for error in form.start_date.errors %}<p class="form-error">{{ error }}</p>{% endfor %}
             </div>
@@ -52,7 +52,7 @@
                            class="form-input" value="{{ form.end_date.data or '' }}">
                     <input type="text" name="end_time" id="end_time" data-role="time"
                            class="form-input time-input" inputmode="text" autocomplete="off"
-                           placeholder="HH:MM" value="{{ form.end_time_val|default('', true) }}">
+                           placeholder="  :  " value="{{ form.end_time_val|default('', true) }}">
                 </div>
             </div>
         </div>
